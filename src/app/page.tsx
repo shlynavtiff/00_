@@ -1,30 +1,23 @@
+
+
+import Tangina from '@/components/Tangina'
+import TSS from '@/components/TSS'
 import React from 'react'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 const page = () => {
   return (
     <div className="h-screen w-full p-2 flex flex-col justify-between">
-      <div className='flex flex-row items-center justify-between p-8 '>
-        <div className="text-2xl">
-          00_
-        </div>
-
-        <div className='flex flex-row gap-4 text-[14px]'>
-          <div>
-            home
-          </div>
-          <div>
-            about
-          </div>
-          <div>
-            snap
-          </div>
-        </div>
+      <div className=' '>
+        <TSS />
+      </div>
+      <div className='items-center justify-center w-full h-full flex flex-col gap-4'>
+        online photobooth by shlynav.tiff
+        <Link href={"/snap"} ><Button className='border border-white cursor-pointer'>snap</Button></Link>
       </div>
       <div>
-        tangiona
-      </div>
-      <div>
-        shlaynvtinve
+        <Tangina />
       </div>
     </div>
   )

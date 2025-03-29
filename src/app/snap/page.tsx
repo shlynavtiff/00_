@@ -1,5 +1,5 @@
-'use client";'
-
+'use client'
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
     Select,
@@ -14,6 +14,54 @@ import { Switch } from "@/components/ui/switch"
 
 
 export default function Home() {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mediaRecorderRef = useRef(null);
+    const [photo, setPhoto] = useState<string | null>(null);
+    const [videoBlob, setVideoBlob] = useState(null);
+    const [stream, setStream] = useState(null);
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+    const [timer, setTimer] = useState(3);
+
+    useEffect(() => {
+        async function getCameras() {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === "videoinput");
+            setDevices(videoDevices);
+            if (videoDevices.length > 0) {
+                setSelectedDeviceId(videoDevices[0].deviceId);
+                startCamera(videoDevices[0].deviceId);
+            }
+        }
+        getCameras();
+    }, []);
+
+    const startCamera = async (deviceId: any) => {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId } }
+        });
+        if (videoRef.current) videoRef.current.srcObject = mediaStream;
+    };
+
+    const handleCameraChange = (deviceId: any) => {
+        setSelectedDeviceId(deviceId);
+        startCamera(deviceId);
+    };
+
+    const handleSnap = () => {
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        if (!canvas || !video) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        setPhoto(canvas.toDataURL("image/png"));
+
+    }
+
     return (
         <div className="">
 
@@ -42,14 +90,16 @@ export default function Home() {
 
                     <div>
                         <p className="text-[14px]">current camera</p>
-                        <Select>
+                        <Select onValueChange={handleCameraChange} value={selectedDeviceId || undefined} >
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Theme" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="light">Light</SelectItem>
-                                <SelectItem value="dark">Dark</SelectItem>
-                                <SelectItem value="system">System</SelectItem>
+                                {devices.map(device => (
+                                    <SelectItem key={device.deviceId} value={device.deviceId}>
+                                        {device.label || `Camera ${device.deviceId.slice(-4)}`}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -57,7 +107,7 @@ export default function Home() {
                     <div>
                         <p>live feed</p>
                         <div className="border-2 border-white rounded-[3px] w-[405px] h-[250px]">
-
+                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                         </div>
                     </div>
 
@@ -75,15 +125,16 @@ export default function Home() {
                             </Select>
                         </div>
 
-                        <Button className="items-center text-center justify-center mt-[25px]">
+                        <Button className="items-center text-center justify-center mt-[25px] text-[12px">
                             reset
                         </Button>
 
                         <div className="mt-[10px]">
                             <p className="text-[10px]">*snap is continous</p>
-                            <Button className="border-2 border-white rounded-sm w-[130px] h-[35px] text-center justify-center items-center">
+                            <Button className="border-2 border-white rounded-sm w-[130px] h-[35px] text-center justify-center items-center" onClick={handleSnap}>
                                 snap
                             </Button>
+                            <canvas ref={canvasRef} style={{ display: "none" }} />
                         </div>
                     </div>
 
@@ -168,16 +219,16 @@ export default function Home() {
 
                 <div className=" border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4">
                     <div className="border-2 border-white rounded-sm w-full h-[140px] ">
-
+                        <img src={photo || undefined} alt="snap" className="border-2 border-white rounded w-auto h-auto" />
                     </div>
                     <div className="border-2 border-white rounded-sm w-full h-[140px] ">
-
+                        <img src={photo || undefined} alt="snap" className="border-2 border-white rounded w-auto h-auto" />
                     </div>
                     <div className="border-2 border-white rounded-sm w-full h-[140px] ">
-
+                        <img src={photo || undefined} alt="snap" className="border-2 border-white rounded w-auto h-auto" />
                     </div>
                     <div className="border-2 border-white rounded-sm w-full h-[140px] ">
-
+                        <img src={photo || undefined} alt="snap" className="border-2 border-white rounded w-auto h-auto" />
                     </div>
                     <div>
                         <p className="text-[10px] ">
