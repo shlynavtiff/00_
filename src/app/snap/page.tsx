@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import {
     Select,
     SelectContent,
@@ -13,16 +12,13 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import Tangina from "@/components/Tangina";
 import TSS from "@/components/TSS";
-import { text } from "stream/consumers";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
     DialogFooter,
-    DialogClose,
 } from "@/components/ui/dialog"
 
 export default function Home() {
@@ -43,9 +39,7 @@ export default function Home() {
     const videoRef4 = useRef<HTMLVideoElement>(null);
     const videoRef5 = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mediaRecorderRef = useRef(null);
     const [photo, setPhoto] = useState<string[]>([]);
-    const [videoBlob, setVideoBlob] = useState(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -71,7 +65,6 @@ export default function Home() {
     useEffect(() => {
         async function getCameras() {
             try {
-                const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(device => device.kind === "videoinput");
 
