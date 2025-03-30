@@ -18,6 +18,16 @@ import { text } from "stream/consumers";
 
 
 export default function Home() {
+    const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
+    const [filters, setFilters] = useState<string[]>([
+        "none",
+        "grayscale(100%)",
+        "sepia(100%)",
+        "brightness(150%) contrast(120%)",
+        "hue-rotate(90deg)",
+        "invert(100%)",
+        "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
+    ]);
     const videoRef = useRef<HTMLVideoElement>(null);
     const videoRef1 = useRef<HTMLVideoElement>(null);
     const videoRef2 = useRef<HTMLVideoElement>(null);
@@ -37,12 +47,11 @@ export default function Home() {
     const [showDate, setShowDate] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
     const [message, setMessage] = useState("");
-    const [filmColor, setFilmColor] = useState("");
+    const [filmColor, setFilmColor] = useState("pink");
     const [customColor, setCustomColor] = useState("#ff0080");
     const [actualFilmColor, setActualFilmColor] = useState("");
     const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
-
-    const [textColor, setTextColor] = useState("");
+    const [textColor, setTextColor] = useState("#ffffff");
     const [textCustomColor, setTextCustomColor] = useState("");
     const [actualTextColor, setActualTextColor] = useState("");
 
@@ -160,6 +169,20 @@ export default function Home() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
+        if (mainFeedFilter === "kodachrome") {
+            ctx.filter = "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)";
+        } else if (mainFeedFilter === "vintage") {
+            ctx.filter = "sepia(50%) contrast(120%) brightness(90%) saturate(120%)";
+        } else if (mainFeedFilter === "b&w") {
+            ctx.filter = "grayscale(100%) contrast(120%)";
+        } else if (mainFeedFilter === "sepia") {
+            ctx.filter = "sepia(100%)";
+        } else if (mainFeedFilter === "vibrant") {
+            ctx.filter = "contrast(150%) saturate(200%)";
+        } else {
+            ctx.filter = mainFeedFilter;
+        }
+
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         return canvas.toDataURL("image/png");
@@ -170,28 +193,36 @@ export default function Home() {
         setCountdown(null);
     };
 
-    const renderText = (ctx: CanvasRenderingContext2D, textColor: string, textPadding: number, height: number, footerHeight: number, lineHeight: number) => {
+    const renderText = (
+        ctx: CanvasRenderingContext2D,
+        textColor: string,
+        textPadding: number,
+        height: number,
+        footerHeight: number,
+        lineHeight: number
+    ) => {
         ctx.fillStyle = textColor;
+        const lineSpacing = 15
 
-        ctx.font = "bold 16px Outfit";
+        ctx.font = "bold 28px Outfit";
         ctx.fillText(
             showMessage ? message : "",
-            textPadding,
-            height - footerHeight / 2 - lineHeight * 2
+            textPadding + 20,
+            height - footerHeight / 2 - lineHeight * 2 - lineSpacing * 2
         );
 
-        ctx.font = "bold 16px Outfit";
+        ctx.font = "bold 28px Outfit";
         ctx.fillText(
             showDate ? new Date().toLocaleDateString() : "",
-            textPadding,
-            height - footerHeight / 2 - lineHeight
+            textPadding + 20,
+            height - footerHeight / 2 - lineHeight - lineSpacing
         );
 
-        ctx.font = "bold 12px Outfit";
+        ctx.font = "bold 20px Outfit";
         ctx.fillText(
             "00_ by shlynav.tiff",
-            textPadding,
-            height - footerHeight / 1.9
+            textPadding + 20,
+            height - footerHeight / 1.8
         );
     };
 
@@ -202,13 +233,13 @@ export default function Home() {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        const width = 370;
-        const height = 980;
-        const frameWidth = 335;
+        const width = 680;
+        const height = 1800;
+        const frameWidth = 600;
         const frameHeight = Math.floor(frameWidth * (9 / 16));
         const borderThickness = 2;
-        const spacing = 15;
-        const footerHeight = 80;
+        const spacing = 35;
+        const footerHeight = 130;
 
         canvas.width = width;
         canvas.height = height;
@@ -266,7 +297,7 @@ export default function Home() {
                 <TSS />
             </div>
 
-            <div className="grid grid-cols-3 gap-4 p-4 w-full max-w-[1200px] mx-auto">
+            <div className="grid grid-cols-3 gap-4 px-4 w-full max-w-[1200px] mx-auto">
                 <div className="w-full p-2">
                     <div>
                         <p className="text-[14px]">current camera</p>
@@ -289,7 +320,19 @@ export default function Home() {
                     <div className="mt-2">
                         <p>live feed</p>
                         <div className="border-2 border-white rounded-[3px] w-[405px] h-[250px] relative">
-                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{
+                                filter: mainFeedFilter === "kodachrome"
+                                    ? "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
+                                    : mainFeedFilter === "vintage"
+                                        ? "sepia(50%) contrast(120%) brightness(90%) saturate(120%)"
+                                        : mainFeedFilter === "b&w"
+                                            ? "grayscale(100%) contrast(120%)"
+                                            : mainFeedFilter === "sepia"
+                                                ? "sepia(100%)"
+                                                : mainFeedFilter === "vibrant"
+                                                    ? "contrast(150%) saturate(200%)"
+                                                    : mainFeedFilter
+                            }} />
                             {countdown !== null && (
                                 <div className=" absolute top-30 left-50 ">
                                     {countdown}
@@ -331,6 +374,26 @@ export default function Home() {
                             <div className="mt-[8px]">
                                 <p className="text-[14px]">add message</p>
                                 <Textarea className="resize-none w-[170px] max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="hehe" />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <p className="text-[14px]">camera filter</p>
+                                <Select
+                                    onValueChange={(value) => setMainFeedFilter(value)}
+                                    value={mainFeedFilter}
+                                >
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Select filter" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="kodachrome">kodachrome 64</SelectItem>
+                                        <SelectItem value="vintage">vintage</SelectItem>
+                                        <SelectItem value="b&w">b&w</SelectItem>
+                                        <SelectItem value="sepia">sepia</SelectItem>
+                                        <SelectItem value="vibrant">vibrant</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div>
@@ -489,24 +552,69 @@ export default function Home() {
                         <p className="flex justify-start text-start">camera filters</p>
                     </div>
 
-                    <div className="border-2 border-white rounded-[3px] w-[160px] h-[100px]">
-                        <video ref={videoRef1} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                        <video
+                            ref={videoRef1}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                            style={{ filter: filters[6] }}
+                        />
+                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                            <p>kodachrome 64</p>
+                        </div>
                     </div>
-                    <div className="border-2 border-white rounded-[3px]w-[160px] h-[100px]]">
-                        <video ref={videoRef2} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                        <video
+                            ref={videoRef2}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                            style={{ filter: filters[1] }}
+                        />
+                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                            <p>b&w</p>
+                        </div>
                     </div>
-                    <div className="border-2 border-whiterounded-[3px] w-[160px] h-[100px]">
-                        <video ref={videoRef3} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                        <video
+                            ref={videoRef3}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                            style={{ filter: filters[2] }}
+                        />
+                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                            <p>sepia</p>
+                        </div>
                     </div>
-                    <div className="border-2 border-white rounded-[3px] w-[160px] h-[100px]">
-                        <video ref={videoRef4} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                        <video
+                            ref={videoRef4}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                            style={{ filter: filters[3] }}
+                        />
+                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                            <p>bright</p>
+                        </div>
                     </div>
-                    <div className="border-2 border-white rounded-[3px] w-[160px] h-[100px]">
-                        <video ref={videoRef5} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                        <video
+                            ref={videoRef5}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                            style={{ filter: filters[4] }}
+                        />
+                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                            <p>kodachrome 64</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className=" border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4" style={{ backgroundColor: customColor }}>
+                <div className=" border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4" style={{ backgroundColor: customColor }}>
                     <div className="border border-white w-full h-[140px] bg-white " draggable
                         onDragStart={() => handleDragStart(0)}
                         onDragOver={handleDragOver}
