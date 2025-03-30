@@ -14,8 +14,16 @@ import { Switch } from "@/components/ui/switch"
 import Tangina from "@/components/Tangina";
 import TSS from "@/components/TSS";
 import { text } from "stream/consumers";
-
-
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogClose,
+} from "@/components/ui/dialog"
 
 export default function Home() {
     const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
@@ -24,7 +32,7 @@ export default function Home() {
         "grayscale(100%)",
         "sepia(100%)",
         "brightness(150%) contrast(120%)",
-        "hue-rotate(90deg)",
+        "sepia(50%) contrast(120%) brightness(90%) saturate(120%)",
         "invert(100%)",
         "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
     ]);
@@ -51,9 +59,14 @@ export default function Home() {
     const [customColor, setCustomColor] = useState("#ff0080");
     const [actualFilmColor, setActualFilmColor] = useState("");
     const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
-    const [textColor, setTextColor] = useState("#ffffff");
+    const [textColor, setTextColor] = useState("white");
     const [textCustomColor, setTextCustomColor] = useState("");
     const [actualTextColor, setActualTextColor] = useState("");
+    const [showCameraErrorDialog, setShowCameraErrorDialog] = useState(false);
+    const [showCameraErrorDialogg, setShowCameraErrorDialogg] = useState(false);
+    const [showCameraErrorDialoggg, setShowCameraErrorDialoggg] = useState(false);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
     useEffect(() => {
         async function getCameras() {
@@ -70,7 +83,7 @@ export default function Home() {
                 }
             } catch (error) {
                 console.error("Camera access denied:", error);
-                alert("Please allow camera access to use this feature.");
+                setShowCameraErrorDialogg(true);
             }
         }
 
@@ -127,6 +140,10 @@ export default function Home() {
     };
 
     const startBurstMode = async () => {
+        if (!stream || !videoRef.current?.srcObject) {
+            setShowCameraErrorDialog(true);
+            return
+        }
         let newPhotos = [];
 
         for (let i = 0; i < burstCount; i++) {
@@ -227,7 +244,9 @@ export default function Home() {
     };
 
     const saveFilmStrip = async () => {
-        if (!photo.length) return alert("take photos first.");
+        if (!photo.length) return (
+            setShowCameraErrorDialoggg(true)
+        );
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -283,7 +302,6 @@ export default function Home() {
         }
 
         renderText(ctx, textColor, 20, height, footerHeight, 20);
-
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = "film_strip.png";
@@ -293,12 +311,106 @@ export default function Home() {
     return (
         <div className="">
 
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                <DialogContent className="w-[300px] p-6 bg-[#151515]">
+                    <DialogHeader>
+                        <DialogTitle>Select a Slot</DialogTitle>
+                        <DialogDescription>
+                            Choose where to upload the image (0-3):
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                        {[0, 1, 2, 3].map((slot) => (
+                            <Button
+                                className="bg-[#151515] text-white hover:bg-white"
+                                key={slot}
+                                variant="outline"
+                                onClick={() => {
+                                    setSelectedSlotIndex(slot);
+                                    setIsUploadDialogOpen(false);
+
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/*';
+                                    input.onchange = (e) => handlePhotoUpload(e, slot);
+                                    input.click();
+                                }}
+                            >
+                                Slot {slot}
+                            </Button>
+                        ))}
+                    </div>
+
+                    <DialogFooter className="mt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsUploadDialogOpen(false)}
+                            className="text-white bg-[#151515] hover:bg-white"
+                        >
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCameraErrorDialoggg} onOpenChange={setShowCameraErrorDialoggg}>
+                <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
+                    <DialogHeader>
+                        <DialogTitle className="">take photos first.</DialogTitle>
+                        <DialogDescription className="text-[14px] font-semibold">
+                            take photos first to save film strip.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            className="text-white bg-[#151515] hover:bg-white"
+                            onClick={() => setShowCameraErrorDialoggg(false)}>
+                            sure
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCameraErrorDialogg} onOpenChange={setShowCameraErrorDialogg}>
+                <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
+                    <DialogHeader>
+                        <DialogTitle className="">camera access required</DialogTitle>
+                        <DialogDescription className="text-[14px] font-semibold">
+                            please allow camera permissions to use this app.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={() => setShowCameraErrorDialog(false)}>
+                            sure
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCameraErrorDialog} onOpenChange={setShowCameraErrorDialog}>
+                <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
+                    <DialogHeader>
+                        <DialogTitle>camera access required</DialogTitle>
+                        <DialogDescription>
+                            please allow camera permissions to use this feature.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={() => setShowCameraErrorDialog(false)}>
+                            sure
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div >
                 <TSS />
             </div>
 
-            <div className="grid grid-cols-3 gap-4 px-4 w-full max-w-[1200px] mx-auto">
-                <div className="w-full p-2">
+            <div className="flex flex-col items-center justify-center xl:grid xl:grid-cols-3 gap-4 xl:px-4 xl:w-full xl:max-w-[1200px] xl:mx-auto">
+                <div className="w-full p-2 mx-auto max-w-[310px] flex flex-col items-center">
                     <div>
                         <p className="text-[14px]">current camera</p>
                         <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
@@ -319,7 +431,7 @@ export default function Home() {
 
                     <div className="mt-2">
                         <p>live feed</p>
-                        <div className="border-2 border-white rounded-[3px] w-[405px] h-[250px] relative">
+                        <div className="border-2 border-white rounded-[3px] w-[310px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
                             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{
                                 filter: mainFeedFilter === "kodachrome"
                                     ? "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
@@ -373,7 +485,7 @@ export default function Home() {
                         <div className="flex flex-col gap-2">
                             <div className="mt-[8px]">
                                 <p className="text-[14px]">add message</p>
-                                <Textarea className="resize-none w-[170px] max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="hehe" />
+                                <Textarea className="resize-none w-[170px] max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="message here" />
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -426,7 +538,7 @@ export default function Home() {
                                     value={textColor}
                                 >
                                     <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="pink" />
+                                        <SelectValue placeholder="white" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="pink">pink</SelectItem>
@@ -485,7 +597,7 @@ export default function Home() {
 
                             <div>
                                 <p className="text-[14px]">stickers</p>
-                                <Select>
+                                <Select disabled>
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue placeholder="girly" />
                                     </SelectTrigger>
@@ -514,22 +626,8 @@ export default function Home() {
                             <div className="items-center justify-start flex flex-col gap-4">
 
                                 <Button
-                                    className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px]"
-                                    onClick={() => {
-                                        // Create a dropdown or modal to select which slot
-                                        const slotIndex = window.prompt("Enter slot number (0-3):");
-                                        if (slotIndex !== null) {
-                                            const index = parseInt(slotIndex);
-                                            if (index >= 0 && index <= 3) {
-                                                // Create a hidden input and trigger it
-                                                const input = document.createElement('input');
-                                                input.type = 'file';
-                                                input.accept = 'image/*';
-                                                input.onchange = (e) => handlePhotoUpload(e, index);
-                                                input.click();
-                                            }
-                                        }
-                                    }}
+                                    className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
+                                    onClick={() => setIsUploadDialogOpen(true)}
                                 >
                                     upload image
                                 </Button>
@@ -547,7 +645,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="w-full  p-2 flex flex-col gap-4 items-center max-w-[170px] mx-auto">
+                <div className="w-full  p-2 flex flex-col gap-4 items-center max-w-[215px] mx-auto">
                     <div className="flex self-start">
                         <p className="flex justify-start text-start">camera filters</p>
                     </div>
@@ -560,7 +658,7 @@ export default function Home() {
                             className="w-full h-full object-cover"
                             style={{ filter: filters[6] }}
                         />
-                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                        <div className="absolute top-12 right-8 w-full h-full flex items-center justify-center">
                             <p>kodachrome 64</p>
                         </div>
                     </div>
@@ -572,7 +670,7 @@ export default function Home() {
                             className="w-full h-full object-cover"
                             style={{ filter: filters[1] }}
                         />
-                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                        <div className="absolute top-12 right-18 w-full h-full flex items-center justify-center">
                             <p>b&w</p>
                         </div>
                     </div>
@@ -584,7 +682,7 @@ export default function Home() {
                             className="w-full h-full object-cover"
                             style={{ filter: filters[2] }}
                         />
-                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                        <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
                             <p>sepia</p>
                         </div>
                     </div>
@@ -596,7 +694,7 @@ export default function Home() {
                             className="w-full h-full object-cover"
                             style={{ filter: filters[3] }}
                         />
-                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
+                        <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
                             <p>bright</p>
                         </div>
                     </div>
@@ -608,8 +706,8 @@ export default function Home() {
                             className="w-full h-full object-cover"
                             style={{ filter: filters[4] }}
                         />
-                        <div className="absolute top-10 right-5 w-full h-full flex items-center justify-center">
-                            <p>kodachrome 64</p>
+                        <div className="absolute top-12 right-15 w-full h-full flex items-center justify-center">
+                            <p>vintage</p>
                         </div>
                     </div>
                 </div>
