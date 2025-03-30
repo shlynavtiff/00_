@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import Tangina from "@/components/Tangina";
 import TSS from "@/components/TSS";
+import { text } from "stream/consumers";
 
 
 
@@ -37,17 +38,33 @@ export default function Home() {
     const [showMessage, setShowMessage] = useState(false);
     const [message, setMessage] = useState("");
     const [filmColor, setFilmColor] = useState("");
+    const [customColor, setCustomColor] = useState("#ff0080");
+    const [actualFilmColor, setActualFilmColor] = useState("");
+    const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
+
+    const [textColor, setTextColor] = useState("");
+    const [textCustomColor, setTextCustomColor] = useState("");
+    const [actualTextColor, setActualTextColor] = useState("");
 
     useEffect(() => {
         async function getCameras() {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === "videoinput");
-            setDevices(videoDevices);
-            if (videoDevices.length > 0) {
-                setSelectedDeviceId(videoDevices[0].deviceId);
-                startCamera(videoDevices[0].deviceId);
+            try {
+                const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+                setDevices(videoDevices);
+
+                if (videoDevices.length > 0) {
+                    setSelectedDeviceId(videoDevices[0].deviceId);
+                    startCamera(videoDevices[0].deviceId);
+                }
+            } catch (error) {
+                console.error("Camera access denied:", error);
+                alert("Please allow camera access to use this feature.");
             }
         }
+
         getCameras();
     }, []);
 
@@ -65,6 +82,39 @@ export default function Home() {
         if (videoRef4.current) videoRef4.current.srcObject = stream;
         if (videoRef5.current) videoRef5.current.srcObject = stream;
 
+    };
+
+    const handleDragStart = (index: number) => {
+        setDraggedPhotoIndex(index);
+    };
+
+    const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+    };
+
+    const handleDrop = (index: number) => {
+        if (draggedPhotoIndex === null) return;
+
+        const updatedPhotos = [...photo];
+        const [draggedPhoto] = updatedPhotos.splice(draggedPhotoIndex, 1);
+        updatedPhotos.splice(index, 0, draggedPhoto);
+
+        setPhoto(updatedPhotos);
+        setDraggedPhotoIndex(null);
+    };
+
+    const handlePhotoUpload = (event: Event, index: number) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const newPhotos = [...photo];
+                newPhotos[index] = reader.result as string;
+                setPhoto(newPhotos);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const startBurstMode = async () => {
@@ -120,8 +170,33 @@ export default function Home() {
         setCountdown(null);
     };
 
+    const renderText = (ctx: CanvasRenderingContext2D, textColor: string, textPadding: number, height: number, footerHeight: number, lineHeight: number) => {
+        ctx.fillStyle = textColor;
+
+        ctx.font = "bold 16px Outfit";
+        ctx.fillText(
+            showMessage ? message : "",
+            textPadding,
+            height - footerHeight / 2 - lineHeight * 2
+        );
+
+        ctx.font = "bold 16px Outfit";
+        ctx.fillText(
+            showDate ? new Date().toLocaleDateString() : "",
+            textPadding,
+            height - footerHeight / 2 - lineHeight
+        );
+
+        ctx.font = "bold 12px Outfit";
+        ctx.fillText(
+            "00_ by shlynav.tiff",
+            textPadding,
+            height - footerHeight / 1.9
+        );
+    };
+
     const saveFilmStrip = async () => {
-        if (!photo.length) return;
+        if (!photo.length) return alert("take photos first.");
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -133,7 +208,7 @@ export default function Home() {
         const frameHeight = Math.floor(frameWidth * (9 / 16));
         const borderThickness = 2;
         const spacing = 15;
-        const footerHeight = 20;
+        const footerHeight = 80;
 
         canvas.width = width;
         canvas.height = height;
@@ -176,11 +251,7 @@ export default function Home() {
             }
         }
 
-        ctx.fillStyle = "white";
-        ctx.font = "12px Outfit";
-        ctx.textAlign = "left";
-        const textPadding = 20;
-        ctx.fillText("00_ by shlynav.tiff", textPadding, height - footerHeight / 2);
+        renderText(ctx, textColor, 20, height, footerHeight, 20);
 
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
@@ -199,15 +270,17 @@ export default function Home() {
                 <div className="w-full p-2">
                     <div>
                         <p className="text-[14px]">current camera</p>
-                        <Select onValueChange={handleCameraChange} value={selectedDeviceId || undefined} >
+                        <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Theme" />
+                                <SelectValue placeholder="Camera" />
                             </SelectTrigger>
                             <SelectContent>
                                 {devices.map(device => (
-                                    <SelectItem key={device.deviceId} value={device.deviceId}>
-                                        {device.label || `Camera ${device.deviceId.slice(-4)}`}
-                                    </SelectItem>
+                                    device.deviceId && (
+                                        <SelectItem key={device.deviceId} value={device.deviceId}>
+                                            {device.label || `Camera ${device.deviceId.slice(-4)}`}
+                                        </SelectItem>
+                                    )
                                 ))}
                             </SelectContent>
                         </Select>
@@ -261,8 +334,34 @@ export default function Home() {
                             </div>
 
                             <div>
-                                <p className="text-[14px]"> film color</p>
-                                <Select onValueChange={setFilmColor} value={filmColor}>
+                                <div className="flex flex-row gap-4 items-center">
+                                    <p className="text-[14px]">message color</p>
+                                    {
+                                        filmColor === "custom" && (
+                                            <input
+                                                type="color"
+                                                value={textCustomColor}
+                                                onChange={(e) => {
+                                                    setTextCustomColor(e.target.value);
+                                                    setActualTextColor(e.target.value);
+                                                }}
+                                                className="w-[50px] h-[30px] mt-2"
+                                            />
+                                        )
+                                    }
+                                </div>
+
+                                <Select
+                                    onValueChange={(value) => {
+                                        if (value !== "custom") {
+                                            setTextColor(value);
+                                            setTextCustomColor(value);
+                                        } else {
+                                            setTextColor("custom");
+                                        }
+                                    }}
+                                    value={textColor}
+                                >
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue placeholder="pink" />
                                     </SelectTrigger>
@@ -273,6 +372,50 @@ export default function Home() {
                                         <SelectItem value="yellow">yellow</SelectItem>
                                         <SelectItem value="blue">blue</SelectItem>
                                         <SelectItem value="purple">purple</SelectItem>
+                                        <SelectItem value="custom">custom</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <div className="flex flex-row gap-4 items-center">
+                                    <p className="text-[14px]">film color</p>
+                                    {
+                                        filmColor === "custom" && (
+                                            <input
+                                                type="color"
+                                                value={customColor}
+                                                onChange={(e) => {
+                                                    setCustomColor(e.target.value);
+                                                    setActualFilmColor(e.target.value);
+                                                }}
+                                                className="w-[50px] h-[30px] mt-2"
+                                            />
+                                        )
+                                    }
+                                </div>
+                                <Select
+                                    onValueChange={(value) => {
+                                        if (value !== "custom") {
+                                            setFilmColor(value);
+                                            setCustomColor(value);
+                                        } else {
+                                            setFilmColor("custom");
+                                        }
+                                    }}
+                                    value={filmColor}
+                                >
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="pink" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="pink">pink</SelectItem>
+                                        <SelectItem value="white">white</SelectItem>
+                                        <SelectItem value="black">black</SelectItem>
+                                        <SelectItem value="yellow">yellow</SelectItem>
+                                        <SelectItem value="blue">blue</SelectItem>
+                                        <SelectItem value="purple">purple</SelectItem>
+                                        <SelectItem value="custom">custom</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -306,9 +449,28 @@ export default function Home() {
                                 <p className="text-[14px]">message</p>
                             </div>
                             <div className="items-center justify-start flex flex-col gap-4">
-                                <Button className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px]">
+
+                                <Button
+                                    className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px]"
+                                    onClick={() => {
+                                        // Create a dropdown or modal to select which slot
+                                        const slotIndex = window.prompt("Enter slot number (0-3):");
+                                        if (slotIndex !== null) {
+                                            const index = parseInt(slotIndex);
+                                            if (index >= 0 && index <= 3) {
+                                                // Create a hidden input and trigger it
+                                                const input = document.createElement('input');
+                                                input.type = 'file';
+                                                input.accept = 'image/*';
+                                                input.onchange = (e) => handlePhotoUpload(e, index);
+                                                input.click();
+                                            }
+                                        }
+                                    }}
+                                >
                                     upload image
                                 </Button>
+
 
                                 <Button className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
                                     download film
@@ -344,32 +506,44 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className=" border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4" style={{ backgroundColor: filmColor }}>
-                    <div className="border border-white rounded-[2px] w-full h-[140px] bg-white">
+                <div className=" border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4" style={{ backgroundColor: customColor }}>
+                    <div className="border border-white w-full h-[140px] bg-white " draggable
+                        onDragStart={() => handleDragStart(0)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(0)}>
                         <img src={photo[0] || undefined} className="  rounded w-full h-full object-cover" />
                     </div>
-                    <div className="border border-white rounded-[2px] w-full h-[140px] bg-white">
+                    <div className="border border-white w-full h-[140px] bg-white" draggable
+                        onDragStart={() => handleDragStart(1)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(1)}>
                         <img src={photo[1] || undefined} className=" rounded w-full h-full object-cover" />
                     </div>
-                    <div className="border border-white rounded-[2px] w-full h-[140px] bg-white">
+                    <div className="border border-white w-full h-[140px] bg-white" draggable
+                        onDragStart={() => handleDragStart(2)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(2)}>
                         <img src={photo[2] || undefined} className=" rounded w-full h-full object-cover" />
                     </div>
-                    <div className="border border-white rounded-[2px] w-full h-[140px] bg-white">
+                    <div className="border border-white w-full h-[140px] bg-white" draggable
+                        onDragStart={() => handleDragStart(3)}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(3)}>
                         <img src={photo[3] || undefined} className=" rounded w-full h-full object-cover" />
                     </div>
                     <div >
                         <div>
-                            <p className="text-[10px] ">
+                            <p className="text-[12px] font-bold" style={{ color: textColor }}>
                                 {showMessage ? message : ""}
                             </p>
                         </div>
                         <div>
-                            <p className="text-[10px] ">
+                            <p className="text-[12px] font-bold " style={{ color: textColor }}>
                                 {showDate ? new Date().toLocaleDateString() : ""}
                             </p>
                         </div>
-                        <div>
-                            <p className="text-[8px] ">
+                        <div >
+                            <p className="text-[8px] font-bold" style={{ color: textColor }}>
                                 00_ by shlynav.tiff
                             </p>
                         </div>
