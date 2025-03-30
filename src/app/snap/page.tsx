@@ -409,8 +409,8 @@ export default function Home() {
                 <TSS />
             </div>
 
-            <div className="flex flex-col items-center justify-center xl:grid xl:grid-cols-3 gap-4 xl:px-4 xl:w-full xl:max-w-[1200px] xl:mx-auto">
-                <div className="w-full p-2 mx-auto max-w-[310px] flex flex-col items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 xl:px-4 xl:w-full xl:max-w-[1200px] xl:mx-auto">
+                <div className="w-full p-2 mx-auto justify-center max-w-[310px] xl:max-w-full flex flex-col ">
                     <div>
                         <p className="text-[14px]">current camera</p>
                         <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
@@ -431,7 +431,7 @@ export default function Home() {
 
                     <div className="mt-2">
                         <p>live feed</p>
-                        <div className="border-2 border-white rounded-[3px] w-[310px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
+                        <div className="border-2 border-white rounded-[3px] w-[295px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
                             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{
                                 filter: mainFeedFilter === "kodachrome"
                                     ? "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
@@ -453,11 +453,11 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-4 items-center">
-                        <div className="mt-[8px]">
+                    <div className="flex flex-row gap-4 items-center xl:items-start">
+                        <div className="mt-[8px] w-full">
                             <p className="text-[14px]">timer</p>
                             <Select onValueChange={(value) => setTimer(parseInt(value))} value={timer.toString()}>
-                                <SelectTrigger className="w-[180px]">
+                                <SelectTrigger className="w-[118px] xl:w-full">
                                     <SelectValue placeholder="timer" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -473,7 +473,7 @@ export default function Home() {
 
                         <div className="mt-[10px]">
                             <p className="text-[10px]">*snap is continous</p>
-                            <Button className="border-2 border-white rounded-sm w-[130px] h-[35px] text-center justify-center items-center" onClick={startBurstMode}>
+                            <Button className="border-2 border-white rounded-sm w-[90px] xl:w-[130px] h-[35px] text-center justify-center items-center" onClick={startBurstMode}>
                                 snap
                             </Button>
                             <canvas ref={canvasRef} style={{ display: "none" }} />
@@ -481,11 +481,11 @@ export default function Home() {
                     </div>
 
 
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-row gap-4 ">
                         <div className="flex flex-col gap-2">
                             <div className="mt-[8px]">
                                 <p className="text-[14px]">add message</p>
-                                <Textarea className="resize-none w-[170px] max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="message here" />
+                                <Textarea className="resize-none w-[170px] xl:w-full max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="message here" />
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -494,7 +494,7 @@ export default function Home() {
                                     onValueChange={(value) => setMainFeedFilter(value)}
                                     value={mainFeedFilter}
                                 >
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className=" w-[170px]">
                                         <SelectValue placeholder="Select filter" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -537,7 +537,7 @@ export default function Home() {
                                     }}
                                     value={textColor}
                                 >
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className=" w-[170px]">
                                         <SelectValue placeholder="white" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -580,7 +580,7 @@ export default function Home() {
                                     }}
                                     value={filmColor}
                                 >
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className=" w-[170px]">
                                         <SelectValue placeholder="pink" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -598,12 +598,12 @@ export default function Home() {
                             <div>
                                 <p className="text-[14px]">stickers</p>
                                 <Select disabled>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="girly" />
+                                    <SelectTrigger className=" w-[170px]">
+                                        <SelectValue placeholder="snoopy" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="mofusand">mofusand</SelectItem>
-                                        <SelectItem value="snoppy">snoopy</SelectItem>
+                                        <SelectItem value="snoopy">snoopy</SelectItem>
                                         <SelectItem value="girly">girly</SelectItem>
                                         <SelectItem value="shin chan">shin chan</SelectItem>
                                         <SelectItem value="miffy">miffy</SelectItem>
@@ -626,18 +626,18 @@ export default function Home() {
                             <div className="items-center justify-start flex flex-col gap-4">
 
                                 <Button
-                                    className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
+                                    className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
                                     onClick={() => setIsUploadDialogOpen(true)}
                                 >
                                     upload image
                                 </Button>
 
 
-                                <Button className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
+                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
                                     download film
                                 </Button>
 
-                                <Button className="border border-white w-[150px] h-[30px] flex items-center justify-center text-[12px] rounded-[3px]">
+                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px]">
                                     download video
                                 </Button>
                             </div>
@@ -645,7 +645,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="w-full  p-2 flex flex-col gap-4 items-center max-w-[215px] mx-auto">
+                <div className="w-full  p-2 flex flex-col gap-4  max-w-[215px] mx-auto">
                     <div className="flex self-start">
                         <p className="flex justify-start text-start">camera filters</p>
                     </div>
@@ -712,55 +712,58 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className=" border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4" style={{ backgroundColor: customColor }}>
-                    <div className="border border-white w-full h-[140px] bg-white " draggable
-                        onDragStart={() => handleDragStart(0)}
-                        onDragOver={handleDragOver}
-                        onDrop={() => handleDrop(0)}>
-                        <img src={photo[0] || undefined} className="  rounded w-full h-full object-cover" />
-                    </div>
-                    <div className="border border-white w-full h-[140px] bg-white" draggable
-                        onDragStart={() => handleDragStart(1)}
-                        onDragOver={handleDragOver}
-                        onDrop={() => handleDrop(1)}>
-                        <img src={photo[1] || undefined} className=" rounded w-full h-full object-cover" />
-                    </div>
-                    <div className="border border-white w-full h-[140px] bg-white" draggable
-                        onDragStart={() => handleDragStart(2)}
-                        onDragOver={handleDragOver}
-                        onDrop={() => handleDrop(2)}>
-                        <img src={photo[2] || undefined} className=" rounded w-full h-full object-cover" />
-                    </div>
-                    <div className="border border-white w-full h-[140px] bg-white" draggable
-                        onDragStart={() => handleDragStart(3)}
-                        onDragOver={handleDragOver}
-                        onDrop={() => handleDrop(3)}>
-                        <img src={photo[3] || undefined} className=" rounded w-full h-full object-cover" />
-                    </div>
-                    <div >
-                        <div>
-                            <p className="text-[12px] font-bold" style={{ color: textColor }}>
-                                {showMessage ? message : ""}
-                            </p>
+                <div className=" p-4 md:col-span-2 xl:col-span-1 justify-center mx-auto" >
+                    <div className=" border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4 justify-center" style={{ backgroundColor: customColor }}>
+                        <div className="border border-white w-full h-[140px] bg-white " draggable
+                            onDragStart={() => handleDragStart(0)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(0)}>
+                            <img src={photo[0] || undefined} className="  rounded w-full h-full object-cover" />
                         </div>
-                        <div>
-                            <p className="text-[12px] font-bold " style={{ color: textColor }}>
-                                {showDate ? new Date().toLocaleDateString() : ""}
-                            </p>
+                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                            onDragStart={() => handleDragStart(1)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(1)}>
+                            <img src={photo[1] || undefined} className=" rounded w-full h-full object-cover" />
+                        </div>
+                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                            onDragStart={() => handleDragStart(2)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(2)}>
+                            <img src={photo[2] || undefined} className=" rounded w-full h-full object-cover" />
+                        </div>
+                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                            onDragStart={() => handleDragStart(3)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(3)}>
+                            <img src={photo[3] || undefined} className=" rounded w-full h-full object-cover" />
                         </div>
                         <div >
-                            <p className="text-[8px] font-bold" style={{ color: textColor }}>
-                                00_ by shlynav.tiff
-                            </p>
+                            <div>
+                                <p className="text-[12px] font-bold" style={{ color: textColor }}>
+                                    {showMessage ? message : ""}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-bold " style={{ color: textColor }}>
+                                    {showDate ? new Date().toLocaleDateString() : ""}
+                                </p>
+                            </div>
+                            <div >
+                                <p className="text-[8px] font-bold" style={{ color: textColor }}>
+                                    00_ by shlynav.tiff
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <div >
                 <Tangina />
             </div>
 
-        </div>
+        </div >
     );
 }
