@@ -56,7 +56,6 @@ export default function Home() {
     const [showDate, setShowDate] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
     const [message, setMessage] = useState("");
-    const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
 
     const [showCameraErrorDialog, setShowCameraErrorDialog] = useState(false);
     const [showCameraErrorDialogg, setShowCameraErrorDialogg] = useState(false);
@@ -128,7 +127,6 @@ export default function Home() {
 
     const handleDragStart = (event: React.DragEvent<HTMLDivElement>, index: number) => {
         event.dataTransfer.setData("photoIndex", index.toString());
-        setDraggedPhotoIndex(index);
     };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -146,7 +144,6 @@ export default function Home() {
         updatedPhotos.splice(index, 0, draggedPhoto);
 
         setPhoto(updatedPhotos);
-        setDraggedPhotoIndex(null);
     };
 
     const handleTouchStart = (index: number) => {
