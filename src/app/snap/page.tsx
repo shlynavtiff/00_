@@ -132,7 +132,7 @@ export default function Home() {
     };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault(); // Required to allow drop
+        event.preventDefault();
     };
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>, index: number) => {
@@ -154,15 +154,22 @@ export default function Home() {
     };
 
     const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-        e.preventDefault(); // Prevent scrolling while reordering
+        e.preventDefault();
     };
 
     const handleTouchEnd = (index: number) => {
         if (touchStartIndex !== null && touchStartIndex !== index) {
-            handleDrop({ preventDefault: () => { }, dataTransfer: { getData: () => touchStartIndex!.toString() } } as any, index);
+            const simulatedEvent = {
+                preventDefault: () => { },
+                dataTransfer: {
+                    getData: () => touchStartIndex!.toString(),
+                },
+            } as unknown as React.DragEvent<HTMLDivElement>;
+            handleDrop(simulatedEvent, index);
         }
         setTouchStartIndex(null);
     };
+
     const handlePhotoUpload = (event: Event, index: number) => {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
@@ -288,9 +295,12 @@ export default function Home() {
     };
 
     const saveFilmStrip = async () => {
-        if (photo.length !== 4) return (
-            setShowCameraErrorDialoggg(true)
-        );
+        const validPhotos = photo.filter((src) => src !== "/placeholder.jpg");
+
+        if (validPhotos.length !== 4) {
+            setShowCameraErrorDialoggg(true);
+            return;
+        }
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -308,7 +318,6 @@ export default function Home() {
         canvas.height = height;
 
         let backgroundFillColor: string | CanvasGradient | CanvasPattern;
-
         if (filmColor === "gradient") {
             const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             gradient.addColorStop(0, gradientStart);
@@ -327,13 +336,13 @@ export default function Home() {
                 img.crossOrigin = "anonymous";
                 img.src = src;
                 img.onload = () => resolve(img);
-                img.onerror = reject;
+                img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
             });
         };
 
-        for (let i = 0; i < photo.length; i++) {
+        for (let i = 0; i < validPhotos.length; i++) {
             try {
-                const img = await loadImage(photo[i]);
+                const img = await loadImage(validPhotos[i]);
                 const yPosition = spacing + i * (frameHeight + spacing);
 
                 ctx.fillStyle = "white";
@@ -351,16 +360,11 @@ export default function Home() {
                 );
             } catch (error) {
                 console.error("Error loading image:", error);
+                return;
             }
         }
 
-        let textFillColor;
-        if (textColor === "custom") {
-            textFillColor = customTextColor;
-        } else {
-            textFillColor = textColor;
-        }
-
+        const textFillColor = textColor === "custom" ? customTextColor : textColor;
         renderText(ctx, textFillColor, 20, height, footerHeight, 20);
 
         const link = document.createElement("a");
