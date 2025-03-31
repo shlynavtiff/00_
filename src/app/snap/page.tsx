@@ -21,6 +21,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import Image from "next/image";
+import { GripVertical } from "lucide-react";
 
 export default function Home() {
     const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
@@ -40,7 +41,12 @@ export default function Home() {
     const videoRef4 = useRef<HTMLVideoElement>(null);
     const videoRef5 = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [photo, setPhoto] = useState<string[]>([]);
+    const [photo, setPhoto] = useState([
+        "/placeholder.jpg",
+        "/placeholder.jpg",
+        "/placeholder.jpg",
+        "/placeholder.jpg",
+    ]);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -68,6 +74,9 @@ export default function Home() {
     const [gradientStart, setGradientStart] = useState("#ff0000");
     const [gradientEnd, setGradientEnd] = useState("#0000ff");
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
+
     useEffect(() => {
         async function getCameras() {
             try {
@@ -117,25 +126,43 @@ export default function Home() {
         }
     };
 
-    const handleDragStart = (index: number) => {
+    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, index: number) => {
+        event.dataTransfer.setData("photoIndex", index.toString());
         setDraggedPhotoIndex(index);
     };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault();
+        event.preventDefault(); // Required to allow drop
     };
 
-    const handleDrop = (index: number) => {
-        if (draggedPhotoIndex === null) return;
+    const handleDrop = (event: React.DragEvent<HTMLDivElement>, index: number) => {
+        event.preventDefault();
+        const draggedIndex = parseInt(event.dataTransfer.getData("photoIndex"), 10);
+
+        if (draggedIndex === index || isNaN(draggedIndex)) return;
 
         const updatedPhotos = [...photo];
-        const [draggedPhoto] = updatedPhotos.splice(draggedPhotoIndex, 1);
+        const [draggedPhoto] = updatedPhotos.splice(draggedIndex, 1);
         updatedPhotos.splice(index, 0, draggedPhoto);
 
         setPhoto(updatedPhotos);
         setDraggedPhotoIndex(null);
     };
 
+    const handleTouchStart = (index: number) => {
+        setTouchStartIndex(index);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        e.preventDefault(); // Prevent scrolling while reordering
+    };
+
+    const handleTouchEnd = (index: number) => {
+        if (touchStartIndex !== null && touchStartIndex !== index) {
+            handleDrop({ preventDefault: () => { }, dataTransfer: { getData: () => touchStartIndex!.toString() } } as any, index);
+        }
+        setTouchStartIndex(null);
+    };
     const handlePhotoUpload = (event: Event, index: number) => {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
@@ -341,6 +368,8 @@ export default function Home() {
         link.download = "film_strip.png";
         link.click();
     };
+
+
 
     return (
         <div className="">
@@ -807,43 +836,32 @@ export default function Home() {
                                 : customColor,
                         }}
                     >
-                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
-                            onDragStart={() => handleDragStart(0)}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(0)}>
-                            <Image
-                                src={photo[0] || "/placeholder.jpg"}
-                                alt={photo[0] ? "Uploaded photo 1" : "Placeholder"}
-                                fill
-                                className="rounded w-full h-full object-cover"
-                            />
-                        </div>
-                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
-                            onDragStart={() => handleDragStart(1)}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(1)}>
-                            <Image src={photo[1] || "/placeholder.jpg"}
-                                alt={photo[0] ? "Uploaded photo 2" : "Placeholder"}
-                                fill
-                                className=" rounded w-full h-full object-cover" />
-                        </div>
-                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
-                            onDragStart={() => handleDragStart(2)}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(2)}>
-                            <Image src={photo[2] || "/placeholder.jpg"}
-                                alt={photo[0] ? "Uploaded photo 3" : "Placeholder"}
-                                fill
-                                className=" rounded w-full h-full object-cover" />
-                        </div>
-                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
-                            onDragStart={() => handleDragStart(3)}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(3)}>
-                            <Image src={photo[3] || "/placeholder.jpg"}
-                                alt={photo[0] ? "Uploaded photo 4" : "Placeholder"}
-                                fill
-                                className=" rounded w-full h-full object-cover" />
+                        <div className="space-y-4">
+                            {photo.map((src, index) => (
+                                <div
+                                    key={index}
+                                    className="border border-white w-full h-[140px] bg-white relative flex items-center"
+                                    draggable
+                                    onDragStart={(event) => handleDragStart(event, index)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(event) => handleDrop(event, index)}
+                                    onTouchStart={() => handleTouchStart(index)}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={() => handleTouchEnd(index)}
+                                >
+                                    {/* Drag Icon */}
+                                    <div className="absolute top-2 left text-white cursor-grab opacity-70 z-10">
+                                        <GripVertical />
+                                    </div>
+
+                                    <Image
+                                        src={src || "/placeholder.jpg"}
+                                        alt={src ? `Uploaded photo ${index + 1}` : "Placeholder"}
+                                        fill
+                                        className="rounded w-full h-full object-cover"
+                                    />
+                                </div>
+                            ))}
                         </div>
                         <div >
                             <div>
