@@ -140,7 +140,7 @@ export default function Home() {
             setShowCameraErrorDialog(true);
             return
         }
-        let newPhotos = [];
+        const newPhotos = [];
 
         for (let i = 0; i < burstCount; i++) {
             let timeLeft = timer;
@@ -166,7 +166,7 @@ export default function Home() {
         }
     };
 
-    const handleCameraChange = (deviceId: any) => {
+    const handleCameraChange = (deviceId: string) => {
         setSelectedDeviceId(deviceId);
         startCamera(deviceId);
     };
@@ -262,7 +262,7 @@ export default function Home() {
         let backgroundFillColor: string | CanvasGradient | CanvasPattern;
 
         if (filmColor === "gradient") {
-            let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             gradient.addColorStop(0, gradientStart);
             gradient.addColorStop(1, gradientEnd);
             backgroundFillColor = gradient;

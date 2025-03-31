@@ -9,8 +9,18 @@ const page = () => {
                 <TSS />
             </div>
 
-            <div>
+            <div className='flex flex-col items-center justify-center max-w-[1000px] mx-auto text-center gap-4 text-lg sm:text-2xl px-4'>
 
+                <p>
+                    welcome to <strong>00_</strong>  – a fun, easy, and instant way to capture moments.
+                    whether you're taking selfies, group shots, or adding creative touches,  <strong>00_</strong> makes
+                    it simple to snap, customize, and download your photos in just a few clicks.
+                </p>
+                <p>
+                    no images are stored or saved when you use <strong>00_.</strong> once you take a photo and download it,
+                    it's gone from our system – giving you full control over your pictures.
+                </p>
+                <p className='text-sm'>a side project of shlynav.tiff</p>
             </div>
 
             <div>
