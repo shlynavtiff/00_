@@ -186,7 +186,6 @@ export default function Home() {
             setShowCameraErrorDialog(true);
             return;
         }
-        const newPhotos = [];
 
         for (let i = 0; i < burstCount; i++) {
             let timeLeft = timer;
@@ -206,9 +205,19 @@ export default function Home() {
 
             const photoData = capturePhoto();
             if (photoData) {
-                newPhotos.push(photoData);
-                setPhoto((prevPhotos) => [...prevPhotos, photoData]);
+                setPhoto((prevPhotos) => {
+                    const updatedPhotos = [...prevPhotos];
+                    const placeholderIndex = updatedPhotos.findIndex((src) => src === "/placeholder.jpg");
+                    if (placeholderIndex !== -1) {
+                        updatedPhotos[placeholderIndex] = photoData;
+                    } else if (updatedPhotos.length < 4) {
+                        updatedPhotos.push(photoData);
+                    }
+
+                    return updatedPhotos.slice(0, 4);
+                });
             }
+
             setCountdown(null);
         }
     };
@@ -249,7 +258,9 @@ export default function Home() {
     };
 
     const handleReset = () => {
-        setPhoto([]);
+        setPhoto((prevPhotos) =>
+            prevPhotos.map((src) => (src === "/placeholder.jpg" ? src : "/placeholder.jpg"))
+        );
         setCountdown(null);
 
         if (countdownIntervalRef.current) {
