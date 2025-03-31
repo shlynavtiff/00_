@@ -67,7 +67,7 @@ export default function Home() {
 
     const [gradientStart, setGradientStart] = useState("#ff0000");
     const [gradientEnd, setGradientEnd] = useState("#0000ff");
-
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
         async function getCameras() {
             try {
@@ -153,7 +153,7 @@ export default function Home() {
     const startBurstMode = async () => {
         if (!stream || !videoRef.current?.srcObject) {
             setShowCameraErrorDialog(true);
-            return
+            return;
         }
         const newPhotos = [];
 
@@ -162,11 +162,12 @@ export default function Home() {
             setCountdown(timeLeft);
 
             await new Promise<void>((resolve) => {
-                const countdownInterval = setInterval(() => {
+                countdownIntervalRef.current = setInterval(() => {
                     timeLeft -= 1;
                     setCountdown(timeLeft);
+
                     if (timeLeft === 0) {
-                        clearInterval(countdownInterval);
+                        clearInterval(countdownIntervalRef.current!);
                         resolve();
                     }
                 }, 1000);
@@ -219,6 +220,11 @@ export default function Home() {
     const handleReset = () => {
         setPhoto([]);
         setCountdown(null);
+
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
     };
 
     const renderText = (
@@ -501,7 +507,11 @@ export default function Home() {
                                                     : mainFeedFilter
                             }} />
                             {countdown !== null && (
-                                <div className=" absolute top-30 left-50 ">
+                                <div className="
+                                 absolute 
+                                 text-white text-2xl font-bold 
+                                 inset-0 flex items-center justify-center 
+                             ">
                                     {countdown}
                                 </div>
                             )}
@@ -522,13 +532,15 @@ export default function Home() {
                             </Select>
                         </div>
 
-                        <Button className="items-center text-center justify-center mt-[25px] text-[12px]" onClick={handleReset}>
+
+
+                        <Button className="items-center text-center justify-center mt-[30px] text-[12px]" onClick={handleReset}>
                             reset
                         </Button>
 
-                        <div className="mt-[10px]">
+                        <div className="mt-[17px]">
                             <p className="text-[10px]">*snap is continous</p>
-                            <Button className="border-2 border-white rounded-sm w-[90px] xl:w-[130px] h-[35px] text-center justify-center items-center" onClick={startBurstMode}>
+                            <Button className="border border-white rounded-sm w-[80px] xl:w-[130px] h-[35px] text-center justify-center items-center" onClick={startBurstMode}>
                                 snap
                             </Button>
                             <canvas ref={canvasRef} style={{ display: "none" }} />
