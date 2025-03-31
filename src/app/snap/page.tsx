@@ -23,7 +23,7 @@ import {
 
 export default function Home() {
     const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
-    const [filters, setFilters] = useState<string[]>([
+    const [filters] = useState<string[]>([
         "none",
         "grayscale(100%)",
         "sepia(100%)",
@@ -49,19 +49,22 @@ export default function Home() {
     const [showDate, setShowDate] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
     const [message, setMessage] = useState("");
-    const [filmColor, setFilmColor] = useState("pink");
-    const [customColor, setCustomColor] = useState("#ff0080");
-    const [actualFilmColor, setActualFilmColor] = useState("");
     const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
-    const [textColor, setTextColor] = useState("white");
-    const [textCustomColor, setTextCustomColor] = useState("");
-    const [actualTextColor, setActualTextColor] = useState("");
+
     const [showCameraErrorDialog, setShowCameraErrorDialog] = useState(false);
     const [showCameraErrorDialogg, setShowCameraErrorDialogg] = useState(false);
     const [showCameraErrorDialoggg, setShowCameraErrorDialoggg] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-    const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
+    const [filmColor, setFilmColor] = useState("pink");
+    const [customColor, setCustomColor] = useState("#ff0080");
+    const [actualFilmColor, setActualFilmColor] = useState("");
+
+    const [textColor, setTextColor] = useState("white");
+    const [customTextColor, setCustomTextColor] = useState("");
+
+    const [gradientStart, setGradientStart] = useState("#ff0000");
+    const [gradientEnd, setGradientEnd] = useState("#0000ff");
     useEffect(() => {
         async function getCameras() {
             try {
@@ -250,13 +253,24 @@ export default function Home() {
         const frameWidth = 600;
         const frameHeight = Math.floor(frameWidth * (9 / 16));
         const borderThickness = 2;
-        const spacing = 35;
-        const footerHeight = 130;
+        const spacing = 45;
+        const footerHeight = 150;
 
         canvas.width = width;
         canvas.height = height;
 
-        ctx.fillStyle = filmColor;
+        let backgroundFillColor: string | CanvasGradient | CanvasPattern;
+
+        if (filmColor === "gradient") {
+            let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, gradientStart);
+            gradient.addColorStop(1, gradientEnd);
+            backgroundFillColor = gradient;
+        } else {
+            backgroundFillColor = filmColor === "custom" ? actualFilmColor : filmColor;
+        }
+
+        ctx.fillStyle = backgroundFillColor;
         ctx.fillRect(0, 0, width, height);
 
         const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -275,8 +289,6 @@ export default function Home() {
                 const yPosition = spacing + i * (frameHeight + spacing);
 
                 ctx.fillStyle = "white";
-                ctx.fill();
-                ctx.beginPath();
                 ctx.fillRect((width - frameWidth) / 2, yPosition, frameWidth, frameHeight);
 
                 const cropHeight = img.width * (9 / 16);
@@ -294,7 +306,15 @@ export default function Home() {
             }
         }
 
-        renderText(ctx, textColor, 20, height, footerHeight, 20);
+        let textFillColor;
+        if (textColor === "custom") {
+            textFillColor = customTextColor;
+        } else {
+            textFillColor = textColor;
+        }
+
+        renderText(ctx, textFillColor, 20, height, footerHeight, 20);
+
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = "film_strip.png";
@@ -307,33 +327,35 @@ export default function Home() {
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                 <DialogContent className="w-[300px] p-6 bg-[#151515]">
                     <DialogHeader>
-                        <DialogTitle>Select a Slot</DialogTitle>
+                        <DialogTitle>select a slot</DialogTitle>
                         <DialogDescription>
-                            Choose where to upload the image (0-3):
+                            choose where to upload the image (1-4).
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                        {[0, 1, 2, 3].map((slot) => (
+                        {[1, 2, 3, 4].map((slot) => (
                             <Button
                                 className="bg-[#151515] text-white hover:bg-white"
                                 key={slot}
                                 variant="outline"
                                 onClick={() => {
-                                    setSelectedSlotIndex(slot);
+                                    const zeroBasedIndex = slot - 1;
                                     setIsUploadDialogOpen(false);
 
                                     const input = document.createElement('input');
                                     input.type = 'file';
                                     input.accept = 'image/*';
-                                    input.onchange = (e) => handlePhotoUpload(e, slot);
+                                    input.onchange = (e) => handlePhotoUpload(e, zeroBasedIndex);
                                     input.click();
                                 }}
                             >
-                                Slot {slot}
+                                slot {slot}
                             </Button>
                         ))}
                     </div>
+
+
 
                     <DialogFooter className="mt-4">
                         <Button
@@ -341,7 +363,7 @@ export default function Home() {
                             onClick={() => setIsUploadDialogOpen(false)}
                             className="text-white bg-[#151515] hover:bg-white"
                         >
-                            Cancel
+                            cancel
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -505,13 +527,12 @@ export default function Home() {
                                 <div className="flex flex-row gap-4 items-center">
                                     <p className="text-[14px]">message color</p>
                                     {
-                                        filmColor === "custom" && (
+                                        textColor === "custom" && (
                                             <input
                                                 type="color"
-                                                value={textCustomColor}
+                                                value={customTextColor}
                                                 onChange={(e) => {
-                                                    setTextCustomColor(e.target.value);
-                                                    setActualTextColor(e.target.value);
+                                                    setCustomTextColor(e.target.value);
                                                 }}
                                                 className="w-[50px] h-[30px] mt-2"
                                             />
@@ -523,7 +544,7 @@ export default function Home() {
                                     onValueChange={(value) => {
                                         if (value !== "custom") {
                                             setTextColor(value);
-                                            setTextCustomColor(value);
+                                            setCustomTextColor(value);
                                         } else {
                                             setTextColor("custom");
                                         }
@@ -547,43 +568,63 @@ export default function Home() {
 
                             <div>
                                 <div className="flex flex-row gap-4 items-center">
-                                    <p className="text-[14px]">film color</p>
-                                    {
-                                        filmColor === "custom" && (
+                                    <p className="text-[14px]">film Color</p>
+                                    {filmColor === "custom" && (
+                                        <input
+                                            type="color"
+                                            value={customColor}
+                                            onChange={(e) => {
+                                                setCustomColor(e.target.value);
+                                                setActualFilmColor(e.target.value);
+                                            }}
+                                            className="w-[50px] h-[30px] mt-2"
+                                        />
+                                    )}
+                                    {filmColor === "gradient" && (
+                                        <div className="flex flex-row gap-2">
                                             <input
                                                 type="color"
-                                                value={customColor}
-                                                onChange={(e) => {
-                                                    setCustomColor(e.target.value);
-                                                    setActualFilmColor(e.target.value);
-                                                }}
+                                                value={gradientStart}
+                                                onChange={(e) => setGradientStart(e.target.value)}
                                                 className="w-[50px] h-[30px] mt-2"
                                             />
-                                        )
-                                    }
+                                            <input
+                                                type="color"
+                                                value={gradientEnd}
+                                                onChange={(e) => setGradientEnd(e.target.value)}
+                                                className="w-[50px] h-[30px] mt-2"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+
                                 <Select
                                     onValueChange={(value) => {
-                                        if (value !== "custom") {
+                                        if (value === "custom") {
+                                            setFilmColor("custom");
+                                        } else if (value === "gradient") {
+                                            setFilmColor("gradient");
+                                            setActualFilmColor(`gradient(${gradientStart}, ${gradientEnd})`);
+                                        } else {
                                             setFilmColor(value);
                                             setCustomColor(value);
-                                        } else {
-                                            setFilmColor("custom");
+                                            setActualFilmColor(value);
                                         }
                                     }}
                                     value={filmColor}
                                 >
-                                    <SelectTrigger className=" w-[170px]">
+                                    <SelectTrigger className="w-[170px]">
                                         <SelectValue placeholder="pink" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="pink">pink</SelectItem>
-                                        <SelectItem value="white">white</SelectItem>
-                                        <SelectItem value="black">black</SelectItem>
-                                        <SelectItem value="yellow">yellow</SelectItem>
-                                        <SelectItem value="blue">blue</SelectItem>
-                                        <SelectItem value="purple">purple</SelectItem>
-                                        <SelectItem value="custom">custom</SelectItem>
+                                        <SelectItem value="pink">Pink</SelectItem>
+                                        <SelectItem value="white">White</SelectItem>
+                                        <SelectItem value="black">Black</SelectItem>
+                                        <SelectItem value="yellow">Yellow</SelectItem>
+                                        <SelectItem value="blue">Blue</SelectItem>
+                                        <SelectItem value="purple">Purple</SelectItem>
+                                        <SelectItem value="custom">Custom</SelectItem>
+                                        <SelectItem value="gradient">Gradient</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -706,7 +747,14 @@ export default function Home() {
                 </div>
 
                 <div className=" p-4 md:col-span-2 xl:col-span-1 justify-center mx-auto" >
-                    <div className=" border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4 justify-center" style={{ backgroundColor: customColor }}>
+                    <div
+                        className="border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4 justify-center"
+                        style={{
+                            background: filmColor === "gradient"
+                                ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
+                                : customColor,
+                        }}
+                    >
                         <div className="border border-white w-full h-[140px] bg-white " draggable
                             onDragStart={() => handleDragStart(0)}
                             onDragOver={handleDragOver}
@@ -733,17 +781,17 @@ export default function Home() {
                         </div>
                         <div >
                             <div>
-                                <p className="text-[12px] font-bold" style={{ color: textColor }}>
+                                <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
                                     {showMessage ? message : ""}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[12px] font-bold " style={{ color: textColor }}>
+                                <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
                                     {showDate ? new Date().toLocaleDateString() : ""}
                                 </p>
                             </div>
                             <div >
-                                <p className="text-[8px] font-bold" style={{ color: textColor }}>
+                                <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
                                     00_ by shlynav.tiff
                                 </p>
                             </div>
