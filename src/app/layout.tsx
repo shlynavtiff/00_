@@ -3,7 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 
 const outfit = Outfit({
-  variable: "--font-outfit", // This sets a CSS variable
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 

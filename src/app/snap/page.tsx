@@ -55,6 +55,7 @@ export default function Home() {
     const [showCameraErrorDialog, setShowCameraErrorDialog] = useState(false);
     const [showCameraErrorDialogg, setShowCameraErrorDialogg] = useState(false);
     const [showCameraErrorDialoggg, setShowCameraErrorDialoggg] = useState(false);
+    const [showCameraErrorDialogggg, setShowCameraErrorDialogggg] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
     const [filmColor, setFilmColor] = useState("pink");
@@ -70,6 +71,8 @@ export default function Home() {
     useEffect(() => {
         async function getCameras() {
             try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(device => device.kind === "videoinput");
 
@@ -89,19 +92,23 @@ export default function Home() {
     }, []);
 
     const startCamera = async (deviceId: string) => {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: deviceId } }
-        });
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: deviceId } }
+            });
 
-        setStream(mediaStream);
+            setStream(mediaStream);
 
-        if (videoRef.current) videoRef.current.srcObject = stream;
-        if (videoRef1.current) videoRef1.current.srcObject = stream;
-        if (videoRef2.current) videoRef2.current.srcObject = stream;
-        if (videoRef3.current) videoRef3.current.srcObject = stream;
-        if (videoRef4.current) videoRef4.current.srcObject = stream;
-        if (videoRef5.current) videoRef5.current.srcObject = stream;
-
+            if (videoRef.current) videoRef.current.srcObject = mediaStream;
+            if (videoRef1.current) videoRef1.current.srcObject = mediaStream;
+            if (videoRef2.current) videoRef2.current.srcObject = mediaStream;
+            if (videoRef3.current) videoRef3.current.srcObject = mediaStream;
+            if (videoRef4.current) videoRef4.current.srcObject = mediaStream;
+            if (videoRef5.current) videoRef5.current.srcObject = mediaStream;
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            setShowCameraErrorDialogg(true);
+        }
     };
 
     const handleDragStart = (index: number) => {
@@ -242,7 +249,7 @@ export default function Home() {
     };
 
     const saveFilmStrip = async () => {
-        if (!photo.length) return (
+        if (photo.length !== 4) return (
             setShowCameraErrorDialoggg(true)
         );
 
@@ -329,7 +336,7 @@ export default function Home() {
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                 <DialogContent className="w-[300px] p-6 bg-[#151515]">
                     <DialogHeader>
-                        <DialogTitle>select a slot</DialogTitle>
+                        <DialogTitle>select a slot.</DialogTitle>
                         <DialogDescription>
                             choose where to upload the image (1-4).
                         </DialogDescription>
@@ -371,12 +378,31 @@ export default function Home() {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={showCameraErrorDialogggg} onOpenChange={setShowCameraErrorDialogggg}>
+                <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
+                    <DialogHeader>
+                        <DialogTitle className="">function currently not available.</DialogTitle>
+                        <DialogDescription className="text-[14px] font-semibold">
+                            finna do this pag sinipag :v.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            className="text-white bg-[#151515] hover:bg-white"
+                            onClick={() => setShowCameraErrorDialogggg(false)}>
+                            ozge
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={showCameraErrorDialoggg} onOpenChange={setShowCameraErrorDialoggg}>
                 <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
                     <DialogHeader>
-                        <DialogTitle className="">take photos first.</DialogTitle>
+                        <DialogTitle className="">take 4 photos first.</DialogTitle>
                         <DialogDescription className="text-[14px] font-semibold">
-                            take photos first to save film strip.
+                            take 4 photos first to save film strip.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -393,13 +419,16 @@ export default function Home() {
             <Dialog open={showCameraErrorDialogg} onOpenChange={setShowCameraErrorDialogg}>
                 <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
                     <DialogHeader>
-                        <DialogTitle className="">camera access required</DialogTitle>
+                        <DialogTitle className="">camera access required.</DialogTitle>
                         <DialogDescription className="text-[14px] font-semibold">
-                            please allow camera permissions to use this app.
+                            please allow camera permissions to use 00_.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={() => setShowCameraErrorDialog(false)}>
+                        <Button
+                            variant="outline"
+                            className="text-white bg-[#151515] hover:bg-white"
+                            onClick={() => setShowCameraErrorDialogg(false)}>
                             sure
                         </Button>
                     </DialogFooter>
@@ -409,13 +438,16 @@ export default function Home() {
             <Dialog open={showCameraErrorDialog} onOpenChange={setShowCameraErrorDialog}>
                 <DialogContent className="w-[350px] h-[170px] bg-[#151515]">
                     <DialogHeader>
-                        <DialogTitle>camera access required</DialogTitle>
+                        <DialogTitle>camera access required.</DialogTitle>
                         <DialogDescription>
-                            please allow camera permissions to use this feature.
+                            please allow camera permissions to take snaps.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={() => setShowCameraErrorDialog(false)}>
+                        <Button
+                            variant="outline"
+                            className="text-white bg-[#151515] hover:bg-white"
+                            onClick={() => setShowCameraErrorDialog(false)}>
                             sure
                         </Button>
                     </DialogFooter>
@@ -619,14 +651,14 @@ export default function Home() {
                                         <SelectValue placeholder="pink" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="pink">Pink</SelectItem>
-                                        <SelectItem value="white">White</SelectItem>
-                                        <SelectItem value="black">Black</SelectItem>
-                                        <SelectItem value="yellow">Yellow</SelectItem>
-                                        <SelectItem value="blue">Blue</SelectItem>
-                                        <SelectItem value="purple">Purple</SelectItem>
-                                        <SelectItem value="custom">Custom</SelectItem>
-                                        <SelectItem value="gradient">Gradient</SelectItem>
+                                        <SelectItem value="pink">pink</SelectItem>
+                                        <SelectItem value="white">white</SelectItem>
+                                        <SelectItem value="black">black</SelectItem>
+                                        <SelectItem value="yellow">yellow</SelectItem>
+                                        <SelectItem value="blue">blue</SelectItem>
+                                        <SelectItem value="purple">purple</SelectItem>
+                                        <SelectItem value="custom">custom</SelectItem>
+                                        <SelectItem value="gradient">gradient</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -673,7 +705,7 @@ export default function Home() {
                                     download film
                                 </Button>
 
-                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px]">
+                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px]" onClick={() => setShowCameraErrorDialogggg(true)}>
                                     download video
                                 </Button>
                             </div>
