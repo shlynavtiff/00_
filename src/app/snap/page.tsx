@@ -73,7 +73,7 @@ export default function Home() {
     const [gradientStart, setGradientStart] = useState("#ff0000");
     const [gradientEnd, setGradientEnd] = useState("#0000ff");
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+    const [isFlipped, setIsFlipped] = useState(false);
     const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
     useEffect(() => {
@@ -238,6 +238,13 @@ export default function Home() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
+        ctx.save();
+
+        if (isFlipped) {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1); // Flip horizontally if enabled
+        }
+
         if (mainFeedFilter === "kodachrome") {
             ctx.filter = "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)";
         } else if (mainFeedFilter === "vintage") {
@@ -253,7 +260,7 @@ export default function Home() {
         }
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+        ctx.restore();
         return canvas.toDataURL("image/png");
     };
 
@@ -381,6 +388,9 @@ export default function Home() {
         link.click();
     };
 
+    const toggleFlip = () => {
+        setIsFlipped((prev) => !prev);
+    };
 
 
     return (
@@ -513,28 +523,34 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 xl:px-4 xl:w-full xl:max-w-[1200px] xl:mx-auto">
                 <div className="w-full p-2 mx-auto justify-center max-w-[310px] xl:max-w-full flex flex-col ">
-                    <div>
-                        <p className="text-[14px]">current camera</p>
-                        <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Camera" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {devices.map(device => (
-                                    device.deviceId && (
-                                        <SelectItem key={device.deviceId} value={device.deviceId}>
-                                            {device.label || `Camera ${device.deviceId.slice(-4)}`}
-                                        </SelectItem>
-                                    )
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="flex flex-row gap-4  justify-between items-end">
+                        <div>
+                            <p className="text-[14px]">current camera</p>
+                            <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
+                                <SelectTrigger className="w-[180px] cursor-pointer">
+                                    <SelectValue placeholder="Camera" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {devices.map(device => (
+                                        device.deviceId && (
+                                            <SelectItem key={device.deviceId} value={device.deviceId}>
+                                                {device.label || `Camera ${device.deviceId.slice(-4)}`}
+                                            </SelectItem>
+                                        )
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <Button variant="outline" onClick={toggleFlip} className="text-white bg-[#151515] hover:bg-white cursor-pointer">
+                            {isFlipped ? "Unflip Camera" : "Flip Camera"}
+                        </Button>
                     </div>
 
                     <div className="mt-2">
                         <p>live feed</p>
                         <div className="border-2 border-white rounded-[3px] w-[295px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
-                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{
+                            <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""} style={{
                                 filter: mainFeedFilter === "kodachrome"
                                     ? "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
                                     : mainFeedFilter === "vintage"
@@ -546,7 +562,7 @@ export default function Home() {
                                                 : mainFeedFilter === "vibrant"
                                                     ? "contrast(150%) saturate(200%)"
                                                     : mainFeedFilter
-                            }} />
+                            }}`} />
                             {countdown !== null && (
                                 <div className="
                                  absolute 
@@ -575,13 +591,13 @@ export default function Home() {
 
 
 
-                        <Button className="items-center text-center justify-center mt-[30px] text-[12px]" onClick={handleReset}>
+                        <Button variant='outline' className="text-white bg-[#151515] hover:bg-white cursor-pointer items-center text-center justify-center mt-[30px] text-[12px]" onClick={handleReset}>
                             reset
                         </Button>
 
                         <div className="mt-[17px]">
                             <p className="text-[10px]">*snap is continous</p>
-                            <Button className="border border-white rounded-sm w-[80px] xl:w-[130px] h-[35px] text-center justify-center items-center" onClick={startBurstMode}>
+                            <Button variant='outline' className="text-white bg-[#151515] hover:bg-white rounded-sm w-[80px] xl:w-[130px] h-[35px] text-center justify-center items-center cursor-pointer" onClick={startBurstMode}>
                                 snap
                             </Button>
                             <canvas ref={canvasRef} style={{ display: "none" }} />
@@ -753,18 +769,19 @@ export default function Home() {
                             <div className="items-center justify-start flex flex-col gap-4">
 
                                 <Button
-                                    className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
+                                    variant='outline'
+                                    className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
                                     onClick={() => setIsUploadDialogOpen(true)}
                                 >
                                     upload image
                                 </Button>
 
 
-                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
+                                <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
                                     download film
                                 </Button>
 
-                                <Button className="border border-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px]" onClick={() => setShowCameraErrorDialogggg(true)}>
+                                <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={() => setShowCameraErrorDialogggg(true)}>
                                     download video
                                 </Button>
                             </div>
@@ -782,7 +799,7 @@ export default function Home() {
                             ref={videoRef1}
                             autoPlay
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
                             style={{ filter: filters[6] }}
                         />
                         <div className="absolute top-12 right-8 w-full h-full flex items-center justify-center">
@@ -794,7 +811,7 @@ export default function Home() {
                             ref={videoRef2}
                             autoPlay
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
                             style={{ filter: filters[1] }}
                         />
                         <div className="absolute top-12 right-18 w-full h-full flex items-center justify-center">
@@ -806,7 +823,7 @@ export default function Home() {
                             ref={videoRef3}
                             autoPlay
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
                             style={{ filter: filters[2] }}
                         />
                         <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
@@ -818,7 +835,7 @@ export default function Home() {
                             ref={videoRef4}
                             autoPlay
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
                             style={{ filter: filters[3] }}
                         />
                         <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
@@ -830,7 +847,7 @@ export default function Home() {
                             ref={videoRef5}
                             autoPlay
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
                             style={{ filter: filters[4] }}
                         />
                         <div className="absolute top-12 right-15 w-full h-full flex items-center justify-center">
