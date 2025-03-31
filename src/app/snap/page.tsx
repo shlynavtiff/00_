@@ -20,6 +20,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog"
+import Image from "next/image";
 
 export default function Home() {
     const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
@@ -65,6 +66,7 @@ export default function Home() {
 
     const [gradientStart, setGradientStart] = useState("#ff0000");
     const [gradientEnd, setGradientEnd] = useState("#0000ff");
+
     useEffect(() => {
         async function getCameras() {
             try {
@@ -755,29 +757,43 @@ export default function Home() {
                                 : customColor,
                         }}
                     >
-                        <div className="border border-white w-full h-[140px] bg-white " draggable
+                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
                             onDragStart={() => handleDragStart(0)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleDrop(0)}>
-                            <img src={photo[0] || undefined} className="  rounded w-full h-full object-cover" />
+                            <Image
+                                src={photo[0] || "/placeholder.jpg"}
+                                alt={photo[0] ? "Uploaded photo 1" : "Placeholder"}
+                                fill
+                                className="rounded w-full h-full object-cover"
+                            />
                         </div>
-                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
                             onDragStart={() => handleDragStart(1)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleDrop(1)}>
-                            <img src={photo[1] || undefined} className=" rounded w-full h-full object-cover" />
+                            <Image src={photo[1] || "/placeholder.jpg"}
+                                alt={photo[0] ? "Uploaded photo 2" : "Placeholder"}
+                                fill
+                                className=" rounded w-full h-full object-cover" />
                         </div>
-                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
                             onDragStart={() => handleDragStart(2)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleDrop(2)}>
-                            <img src={photo[2] || undefined} className=" rounded w-full h-full object-cover" />
+                            <Image src={photo[2] || "/placeholder.jpg"}
+                                alt={photo[0] ? "Uploaded photo 3" : "Placeholder"}
+                                fill
+                                className=" rounded w-full h-full object-cover" />
                         </div>
-                        <div className="border border-white w-full h-[140px] bg-white" draggable
+                        <div className="border border-white w-full h-[140px] bg-white relative" draggable
                             onDragStart={() => handleDragStart(3)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleDrop(3)}>
-                            <img src={photo[3] || undefined} className=" rounded w-full h-full object-cover" />
+                            <Image src={photo[3] || "/placeholder.jpg"}
+                                alt={photo[0] ? "Uploaded photo 4" : "Placeholder"}
+                                fill
+                                className=" rounded w-full h-full object-cover" />
                         </div>
                         <div >
                             <div>

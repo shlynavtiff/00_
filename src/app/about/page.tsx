@@ -13,12 +13,12 @@ const page = () => {
 
                 <p>
                     welcome to <strong>00_</strong>  – a fun, easy, and instant way to capture moments.
-                    whether you're taking selfies, group shots, or adding creative touches,  <strong>00_</strong> makes
+                    whether you&apos;re taking selfies, group shots, or adding creative touches,  <strong>00_</strong> makes
                     it simple to snap, customize, and download your photos in just a few clicks.
                 </p>
                 <p>
                     no images are stored or saved when you use <strong>00_.</strong> once you take a photo and download it,
-                    it's gone from our system – giving you full control over your pictures.
+                    it&apos;s gone from our system – giving you full control over your pictures.
                 </p>
                 <p className='text-sm'>a side project of shlynav.tiff</p>
             </div>
