@@ -76,6 +76,8 @@ export default function Home() {
     const [isFlipped, setIsFlipped] = useState(false);
     const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
+    const [layout, setLayout] = useState("vertical");
+
     useEffect(() => {
         async function getCameras() {
             try {
@@ -242,7 +244,7 @@ export default function Home() {
 
         if (isFlipped) {
             ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1); // Flip horizontally if enabled
+            ctx.scale(-1, 1);
         }
 
         if (mainFeedFilter === "kodachrome") {
@@ -309,30 +311,54 @@ export default function Home() {
         );
     };
 
-    const saveFilmStrip = async () => {
-        const validPhotos = photo.filter((src) => src !== "/placeholder.jpg");
+    const saveFilmStrip = async (): Promise<void> => {
+        const validPhotos: string[] = photo.filter((src) => src !== "/placeholder.jpg");
 
         if (validPhotos.length !== 4) {
             setShowCameraErrorDialoggg(true);
             return;
         }
 
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+        type LayoutConfig = {
+            width: number;
+            height: number;
+            frameWidth: number;
+            frameHeight: number;
+            middleSpacing?: number; // Added middle spacing option
+        };
 
-        const width = 680;
-        const height = 1800;
-        const frameWidth = 600;
-        const frameHeight = Math.floor(frameWidth * (9 / 16));
-        const borderThickness = 2;
-        const spacing = 45;
-        const footerHeight = 150;
+        const layoutConfig: Record<string, LayoutConfig> = {
+            vertical: { width: 680, height: 1800, frameWidth: 600, frameHeight: 337.5 },
+            horizontal: { width: 1800, height: 680, frameWidth: 337.5, frameHeight: 600 },
+            "grid-horizontal": {
+                width: 1700,
+                height: 1050,
+                frameWidth: 684,
+                frameHeight: 450,
+                middleSpacing: 40
+            },
+            "grid-vertical": {
+                width: 1050,
+                height: 1700,
+                frameWidth: 450,
+                frameHeight: 684,
+                middleSpacing: 40
+            },
+        };
+
+        const { width, height, frameWidth, frameHeight, middleSpacing = 40 } = layoutConfig[layout] ?? layoutConfig["vertical"];
+        const borderThickness: number = 2;
+        const spacing: number = 50;
+        const footerHeight: number = 150;
+
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+        if (!ctx) return;
 
         canvas.width = width;
         canvas.height = height;
 
-        let backgroundFillColor: string | CanvasGradient | CanvasPattern;
+        let backgroundFillColor: string | CanvasGradient;
         if (filmColor === "gradient") {
             const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             gradient.addColorStop(0, gradientStart);
@@ -357,21 +383,57 @@ export default function Home() {
 
         for (let i = 0; i < validPhotos.length; i++) {
             try {
-                const img = await loadImage(validPhotos[i]);
-                const yPosition = spacing + i * (frameHeight + spacing);
+                const img: HTMLImageElement = await loadImage(validPhotos[i]);
+                let xPosition: number = (width - frameWidth) / 2;
+                let yPosition: number = spacing + i * (frameHeight + spacing);
+
+                if (layout === "horizontal") {
+                    xPosition = spacing + i * (frameWidth + spacing);
+                    yPosition = (height - frameHeight) / 2;
+                } else if (layout === "grid-vertical") {
+                    if (i % 2 === 0) {
+                        xPosition = spacing;
+                    } else {
+                        xPosition = width / 2 + middleSpacing / 2;
+                    }
+                    yPosition = Math.floor(i / 2) * (frameHeight + spacing) + spacing;
+                } else if (layout === "grid-horizontal") {
+                    xPosition = Math.floor(i / 2) * (frameWidth + spacing) + spacing;
+                    if (i % 2 === 0) {
+                        yPosition = spacing;
+                    } else {
+                        yPosition = height / 2 + middleSpacing / 2;
+                    }
+                }
 
                 ctx.fillStyle = "white";
-                ctx.fillRect((width - frameWidth) / 2, yPosition, frameWidth, frameHeight);
+                ctx.fillRect(xPosition, yPosition, frameWidth, frameHeight);
 
-                const cropHeight = img.width * (9 / 16);
-                const cropX = 0;
-                const cropY = (img.height - cropHeight) / 2;
+                // Aspect ratio handling
+                const targetAspect = frameWidth / frameHeight;
+                const imgAspect = img.width / img.height;
+                let cropWidth, cropHeight, cropX, cropY;
+
+                if (imgAspect > targetAspect) {
+                    // Landscape image - crop width
+                    cropWidth = img.height * targetAspect;
+                    cropHeight = img.height;
+                    cropX = (img.width - cropWidth) / 2;
+                    cropY = 0;
+                } else {
+                    // Portrait image - crop height
+                    cropHeight = img.width / targetAspect;
+                    cropWidth = img.width;
+                    cropX = 0;
+                    cropY = (img.height - cropHeight) / 2;
+                }
 
                 ctx.drawImage(
                     img,
-                    cropX, cropY, img.width, cropHeight,
-                    (width - frameWidth) / 2 + borderThickness, yPosition + borderThickness,
-                    frameWidth - 2 * borderThickness, frameHeight - 2 * borderThickness
+                    cropX, cropY, cropWidth, cropHeight,
+                    xPosition + borderThickness, yPosition + borderThickness,
+                    frameWidth - 2 * borderThickness,
+                    frameHeight - 2 * borderThickness
                 );
             } catch (error) {
                 console.error("Error loading image:", error);
@@ -379,14 +441,22 @@ export default function Home() {
             }
         }
 
-        const textFillColor = textColor === "custom" ? customTextColor : textColor;
-        renderText(ctx, textFillColor, 20, height, footerHeight, 20);
+        const textFillColor: string = textColor === "custom" ? customTextColor : textColor;
 
-        const link = document.createElement("a");
+        if (layout === "horizontal") {
+            renderText(ctx, textFillColor, width - 250, height - 565 / 2, 0, 20);
+        } else if (layout === "grid-horizontal") {
+            renderText(ctx, textFillColor, width - 235, height - 965 / 2, 0, 20);
+        } else {
+            renderText(ctx, textFillColor, 20, height, footerHeight, 20);
+        }
+
+        const link: HTMLAnchorElement = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = "film_strip.png";
         link.click();
     };
+
 
     const toggleFlip = () => {
         setIsFlipped((prev) => !prev);
@@ -521,36 +591,37 @@ export default function Home() {
                 <TSS />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 xl:px-4 xl:w-full xl:max-w-[1200px] xl:mx-auto">
-                <div className="w-full p-2 mx-auto justify-center max-w-[310px] xl:max-w-full flex flex-col ">
-                    <div className="flex flex-row gap-4  justify-between items-end">
-                        <div>
-                            <p className="text-[14px]">current camera</p>
-                            <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Camera" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {devices.map(device => (
-                                        device.deviceId && (
-                                            <SelectItem key={device.deviceId} value={device.deviceId}>
-                                                {device.label || `Camera ${device.deviceId.slice(-4)}`}
-                                            </SelectItem>
-                                        )
-                                    ))}
-                                </SelectContent>
-                            </Select>
+            <div className="flex flex-col gap-4 px-4  max-w-[1200px] mx-auto">
+                <div className="flex flex-col sm:flex-row">
+                    <div className=" p-2 mx-auto justify-center max-w-[310px] xl:max-w-full flex flex-col ">
+                        <div className="flex flex-row gap-4  justify-between items-end">
+                            <div>
+                                <p className="text-[14px]">current camera</p>
+                                <Select onValueChange={handleCameraChange} value={selectedDeviceId ?? devices[0]?.deviceId} >
+                                    <SelectTrigger className="w-[180px] cursor-pointer">
+                                        <SelectValue placeholder="Camera" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {devices.map(device => (
+                                            device.deviceId && (
+                                                <SelectItem key={device.deviceId} value={device.deviceId}>
+                                                    {device.label || `Camera ${device.deviceId.slice(-4)}`}
+                                                </SelectItem>
+                                            )
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <Button variant="outline" onClick={toggleFlip} className="text-white bg-[#151515] hover:bg-white cursor-pointer">
+                                {isFlipped ? "Unflip Camera" : "Flip Camera"}
+                            </Button>
                         </div>
 
-                        <Button variant="outline" onClick={toggleFlip} className="text-white bg-[#151515] hover:bg-white cursor-pointer">
-                            {isFlipped ? "Unflip Camera" : "Flip Camera"}
-                        </Button>
-                    </div>
-
-                    <div className="mt-2">
-                        <p>live feed</p>
-                        <div className="border-2 border-white rounded-[3px] w-[295px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
-                            <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""} style={{
+                        <div className="mt-2">
+                            <p>live feed</p>
+                            <div className="border-2 border-white rounded-[3px] w-[295px] h-[155px] xl:w-[405px] xl:h-[250px] relative">
+                                <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""} style={{
                                 filter: mainFeedFilter === "kodachrome"
                                     ? "contrast(110%) saturate(125%) hue-rotate(-5deg) brightness(105%)"
                                     : mainFeedFilter === "vintage"
@@ -563,361 +634,505 @@ export default function Home() {
                                                     ? "contrast(150%) saturate(200%)"
                                                     : mainFeedFilter
                             }}`} />
-                            {countdown !== null && (
-                                <div className="
+                                {countdown !== null && (
+                                    <div className="
                                  absolute 
                                  text-white text-2xl font-bold 
                                  inset-0 flex items-center justify-center 
                              ">
-                                    {countdown}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-row gap-4 items-center xl:items-start">
-                        <div className="mt-[8px] w-full">
-                            <p className="text-[14px]">timer</p>
-                            <Select onValueChange={(value) => setTimer(parseInt(value))} value={timer.toString()}>
-                                <SelectTrigger className="w-[118px] xl:w-full">
-                                    <SelectValue placeholder="timer" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="3">3 seconds</SelectItem>
-                                    <SelectItem value="5">5 seconds</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-
-
-                        <Button variant='outline' className="text-white bg-[#151515] hover:bg-white cursor-pointer items-center text-center justify-center mt-[30px] text-[12px]" onClick={handleReset}>
-                            reset
-                        </Button>
-
-                        <div className="mt-[17px]">
-                            <p className="text-[10px]">*snap is continous</p>
-                            <Button variant='outline' className="text-white bg-[#151515] hover:bg-white rounded-sm w-[80px] xl:w-[130px] h-[35px] text-center justify-center items-center cursor-pointer" onClick={startBurstMode}>
-                                snap
-                            </Button>
-                            <canvas ref={canvasRef} style={{ display: "none" }} />
-                        </div>
-                    </div>
-
-
-                    <div className="flex flex-row gap-4 ">
-                        <div className="flex flex-col gap-2">
-                            <div className="mt-[8px]">
-                                <p className="text-[14px]">add message</p>
-                                <Textarea className="resize-none w-[170px] xl:w-full max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="message here" />
+                                        {countdown}
+                                    </div>
+                                )}
                             </div>
+                        </div>
 
-                            <div className="flex flex-col gap-2">
-                                <p className="text-[14px]">camera filter</p>
-                                <Select
-                                    onValueChange={(value) => setMainFeedFilter(value)}
-                                    value={mainFeedFilter}
-                                >
-                                    <SelectTrigger className=" w-[170px]">
-                                        <SelectValue placeholder="Select filter" />
+                        <div className="flex flex-row gap-4 items-center xl:items-start">
+                            <div className="mt-[8px] w-full">
+                                <p className="text-[14px]">timer</p>
+                                <Select onValueChange={(value) => setTimer(parseInt(value))} value={timer.toString()}>
+                                    <SelectTrigger className="w-[118px] xl:w-full">
+                                        <SelectValue placeholder="timer" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="kodachrome">kodachrome 64</SelectItem>
-                                        <SelectItem value="vintage">vintage</SelectItem>
-                                        <SelectItem value="b&w">b&w</SelectItem>
-                                        <SelectItem value="sepia">sepia</SelectItem>
-                                        <SelectItem value="vibrant">vibrant</SelectItem>
+                                        <SelectItem value="3">3 seconds</SelectItem>
+                                        <SelectItem value="5">5 seconds</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            <div>
-                                <div className="flex flex-row gap-4 items-center">
-                                    <p className="text-[14px]">message color</p>
-                                    {
-                                        textColor === "custom" && (
+
+
+                            <Button variant='outline' className="text-white bg-[#151515] hover:bg-white cursor-pointer items-center text-center justify-center mt-[30px] text-[12px]" onClick={handleReset}>
+                                reset
+                            </Button>
+
+                            <div className="mt-[17px]">
+                                <p className="text-[10px]">*snap is continous</p>
+                                <Button variant='outline' className="text-white bg-[#151515] hover:bg-white rounded-sm w-[80px] xl:w-[130px] h-[35px] text-center justify-center items-center cursor-pointer" onClick={startBurstMode}>
+                                    snap
+                                </Button>
+                                <canvas ref={canvasRef} style={{ display: "none" }} />
+                            </div>
+                        </div>
+
+
+                        <div className="flex flex-row gap-4 ">
+                            <div className="flex flex-col gap-2">
+                                <div className="mt-[8px]">
+                                    <p className="text-[14px]">add message</p>
+                                    <Textarea className="resize-none w-[170px] xl:w-full max-h-[50px]" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="message here" />
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-[14px]">camera filter</p>
+                                    <Select
+                                        onValueChange={(value) => setMainFeedFilter(value)}
+                                        value={mainFeedFilter}
+                                    >
+                                        <SelectTrigger className=" w-[170px]">
+                                            <SelectValue placeholder="Select filter" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            <SelectItem value="kodachrome">kodachrome 64</SelectItem>
+                                            <SelectItem value="vintage">vintage</SelectItem>
+                                            <SelectItem value="b&w">b&w</SelectItem>
+                                            <SelectItem value="sepia">sepia</SelectItem>
+                                            <SelectItem value="vibrant">vibrant</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <div className="flex flex-row gap-4 items-center">
+                                        <p className="text-[14px]">message color</p>
+                                        {
+                                            textColor === "custom" && (
+                                                <input
+                                                    type="color"
+                                                    value={customTextColor}
+                                                    onChange={(e) => {
+                                                        setCustomTextColor(e.target.value);
+                                                    }}
+                                                    className="w-[50px] h-[30px] mt-2"
+                                                />
+                                            )
+                                        }
+                                    </div>
+
+                                    <Select
+                                        onValueChange={(value) => {
+                                            if (value !== "custom") {
+                                                setTextColor(value);
+                                                setCustomTextColor(value);
+                                            } else {
+                                                setTextColor("custom");
+                                            }
+                                        }}
+                                        value={textColor}
+                                    >
+                                        <SelectTrigger className=" w-[170px]">
+                                            <SelectValue placeholder="white" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pink">pink</SelectItem>
+                                            <SelectItem value="white">white</SelectItem>
+                                            <SelectItem value="black">black</SelectItem>
+                                            <SelectItem value="yellow">yellow</SelectItem>
+                                            <SelectItem value="blue">blue</SelectItem>
+                                            <SelectItem value="purple">purple</SelectItem>
+                                            <SelectItem value="custom">custom</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <div className="flex flex-row gap-4 items-center">
+                                        <p className="text-[14px]">film Color</p>
+                                        {filmColor === "custom" && (
                                             <input
                                                 type="color"
-                                                value={customTextColor}
+                                                value={customColor}
                                                 onChange={(e) => {
-                                                    setCustomTextColor(e.target.value);
+                                                    setCustomColor(e.target.value);
+                                                    setActualFilmColor(e.target.value);
                                                 }}
                                                 className="w-[50px] h-[30px] mt-2"
                                             />
-                                        )
-                                    }
-                                </div>
-
-                                <Select
-                                    onValueChange={(value) => {
-                                        if (value !== "custom") {
-                                            setTextColor(value);
-                                            setCustomTextColor(value);
-                                        } else {
-                                            setTextColor("custom");
-                                        }
-                                    }}
-                                    value={textColor}
-                                >
-                                    <SelectTrigger className=" w-[170px]">
-                                        <SelectValue placeholder="white" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pink">pink</SelectItem>
-                                        <SelectItem value="white">white</SelectItem>
-                                        <SelectItem value="black">black</SelectItem>
-                                        <SelectItem value="yellow">yellow</SelectItem>
-                                        <SelectItem value="blue">blue</SelectItem>
-                                        <SelectItem value="purple">purple</SelectItem>
-                                        <SelectItem value="custom">custom</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <div className="flex flex-row gap-4 items-center">
-                                    <p className="text-[14px]">film Color</p>
-                                    {filmColor === "custom" && (
-                                        <input
-                                            type="color"
-                                            value={customColor}
-                                            onChange={(e) => {
-                                                setCustomColor(e.target.value);
-                                                setActualFilmColor(e.target.value);
-                                            }}
-                                            className="w-[50px] h-[30px] mt-2"
-                                        />
-                                    )}
-                                    {filmColor === "gradient" && (
-                                        <div className="flex flex-row gap-2">
-                                            <input
-                                                type="color"
-                                                value={gradientStart}
-                                                onChange={(e) => setGradientStart(e.target.value)}
-                                                className="w-[50px] h-[30px] mt-2"
-                                            />
-                                            <input
-                                                type="color"
-                                                value={gradientEnd}
-                                                onChange={(e) => setGradientEnd(e.target.value)}
-                                                className="w-[50px] h-[30px] mt-2"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <Select
-                                    onValueChange={(value) => {
-                                        if (value === "custom") {
-                                            setFilmColor("custom");
-                                        } else if (value === "gradient") {
-                                            setFilmColor("gradient");
-                                            setActualFilmColor(`gradient(${gradientStart}, ${gradientEnd})`);
-                                        } else {
-                                            setFilmColor(value);
-                                            setCustomColor(value);
-                                            setActualFilmColor(value);
-                                        }
-                                    }}
-                                    value={filmColor}
-                                >
-                                    <SelectTrigger className="w-[170px]">
-                                        <SelectValue placeholder="pink" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pink">pink</SelectItem>
-                                        <SelectItem value="white">white</SelectItem>
-                                        <SelectItem value="black">black</SelectItem>
-                                        <SelectItem value="yellow">yellow</SelectItem>
-                                        <SelectItem value="blue">blue</SelectItem>
-                                        <SelectItem value="purple">purple</SelectItem>
-                                        <SelectItem value="custom">custom</SelectItem>
-                                        <SelectItem value="gradient">gradient</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <p className="text-[14px]">stickers</p>
-                                <Select disabled>
-                                    <SelectTrigger className=" w-[170px]">
-                                        <SelectValue placeholder="snoopy" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="mofusand">mofusand</SelectItem>
-                                        <SelectItem value="snoopy">snoopy</SelectItem>
-                                        <SelectItem value="girly">girly</SelectItem>
-                                        <SelectItem value="shin chan">shin chan</SelectItem>
-                                        <SelectItem value="miffy">miffy</SelectItem>
-                                        <SelectItem value="butterfly">butterfly</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-[15px] mt-6">
-
-                            <div className="items-center justify-start flex flex-row gap-4">
-                                <Switch checked={showDate} onCheckedChange={setShowDate} />
-                                date
-                            </div>
-                            <div className="items-center  justify-start flex flex-row gap-4">
-                                <Switch checked={showMessage} onCheckedChange={setShowMessage} />
-                                <p className="text-[14px]">message</p>
-                            </div>
-                            <div className="items-center justify-start flex flex-col gap-4">
-
-                                <Button
-                                    variant='outline'
-                                    className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
-                                    onClick={() => setIsUploadDialogOpen(true)}
-                                >
-                                    upload image
-                                </Button>
-
-
-                                <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
-                                    download film
-                                </Button>
-
-                                <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={() => setShowCameraErrorDialogggg(true)}>
-                                    download video
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="w-full  p-2 flex flex-col gap-4  max-w-[215px] mx-auto">
-                    <div className="flex self-start">
-                        <p className="flex justify-start text-start">camera filters</p>
-                    </div>
-
-                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
-                        <video
-                            ref={videoRef1}
-                            autoPlay
-                            playsInline
-                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
-                            style={{ filter: filters[6] }}
-                        />
-                        <div className="absolute top-12 right-8 w-full h-full flex items-center justify-center">
-                            <p>kodachrome 64</p>
-                        </div>
-                    </div>
-                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
-                        <video
-                            ref={videoRef2}
-                            autoPlay
-                            playsInline
-                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
-                            style={{ filter: filters[1] }}
-                        />
-                        <div className="absolute top-12 right-18 w-full h-full flex items-center justify-center">
-                            <p>b&w</p>
-                        </div>
-                    </div>
-                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
-                        <video
-                            ref={videoRef3}
-                            autoPlay
-                            playsInline
-                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
-                            style={{ filter: filters[2] }}
-                        />
-                        <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
-                            <p>sepia</p>
-                        </div>
-                    </div>
-                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
-                        <video
-                            ref={videoRef4}
-                            autoPlay
-                            playsInline
-                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
-                            style={{ filter: filters[3] }}
-                        />
-                        <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
-                            <p>bright</p>
-                        </div>
-                    </div>
-                    <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
-                        <video
-                            ref={videoRef5}
-                            autoPlay
-                            playsInline
-                            className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
-                            style={{ filter: filters[4] }}
-                        />
-                        <div className="absolute top-12 right-15 w-full h-full flex items-center justify-center">
-                            <p>vintage</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className=" p-4 md:col-span-2 xl:col-span-1 justify-center mx-auto" >
-                    <div
-                        className="border-2 border-white w-[250px] h-[715px] p-4 mt-6 flex flex-col gap-4 justify-center"
-                        style={{
-                            background: filmColor === "gradient"
-                                ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
-                                : customColor,
-                        }}
-                    >
-                        <div className="space-y-4">
-                            {photo.map((src, index) => (
-                                <div
-                                    key={index}
-                                    className="border border-white w-full h-[140px] bg-white relative flex items-center"
-                                    draggable
-                                    onDragStart={(event) => handleDragStart(event, index)}
-                                    onDragOver={handleDragOver}
-                                    onDrop={(event) => handleDrop(event, index)}
-                                    onTouchStart={() => handleTouchStart(index)}
-                                    onTouchMove={handleTouchMove}
-                                    onTouchEnd={() => handleTouchEnd(index)}
-                                >
-                                    {/* Drag Icon */}
-                                    <div className="absolute top-2 left text-white cursor-grab opacity-70 z-10">
-                                        <GripVertical />
+                                        )}
+                                        {filmColor === "gradient" && (
+                                            <div className="flex flex-row gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={gradientStart}
+                                                    onChange={(e) => setGradientStart(e.target.value)}
+                                                    className="w-[50px] h-[30px] mt-2"
+                                                />
+                                                <input
+                                                    type="color"
+                                                    value={gradientEnd}
+                                                    onChange={(e) => setGradientEnd(e.target.value)}
+                                                    className="w-[50px] h-[30px] mt-2"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <Image
-                                        src={src || "/placeholder.jpg"}
-                                        alt={src ? `Uploaded photo ${index + 1}` : "Placeholder"}
-                                        fill
-                                        className="rounded w-full h-full object-cover"
-                                    />
+                                    <Select
+                                        onValueChange={(value) => {
+                                            if (value === "custom") {
+                                                setFilmColor("custom");
+                                            } else if (value === "gradient") {
+                                                setFilmColor("gradient");
+                                                setActualFilmColor(`gradient(${gradientStart}, ${gradientEnd})`);
+                                            } else {
+                                                setFilmColor(value);
+                                                setCustomColor(value);
+                                                setActualFilmColor(value);
+                                            }
+                                        }}
+                                        value={filmColor}
+                                    >
+                                        <SelectTrigger className="w-[170px]">
+                                            <SelectValue placeholder="pink" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pink">pink</SelectItem>
+                                            <SelectItem value="white">white</SelectItem>
+                                            <SelectItem value="black">black</SelectItem>
+                                            <SelectItem value="yellow">yellow</SelectItem>
+                                            <SelectItem value="blue">blue</SelectItem>
+                                            <SelectItem value="purple">purple</SelectItem>
+                                            <SelectItem value="custom">custom</SelectItem>
+                                            <SelectItem value="gradient">gradient</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                            ))}
+
+                                <div>
+                                    <p className="text-[14px]">stickers</p>
+                                    <Select disabled>
+                                        <SelectTrigger className=" w-[170px]">
+                                            <SelectValue placeholder="snoopy" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="mofusand">mofusand</SelectItem>
+                                            <SelectItem value="snoopy">snoopy</SelectItem>
+                                            <SelectItem value="girly">girly</SelectItem>
+                                            <SelectItem value="shin chan">shin chan</SelectItem>
+                                            <SelectItem value="miffy">miffy</SelectItem>
+                                            <SelectItem value="butterfly">butterfly</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-[15px] mt-6">
+
+                                <div className="items-center justify-start flex flex-row gap-4">
+                                    <Switch checked={showDate} onCheckedChange={setShowDate} />
+                                    date
+                                </div>
+                                <div className="items-center  justify-start flex flex-row gap-4">
+                                    <Switch checked={showMessage} onCheckedChange={setShowMessage} />
+                                    <p className="text-[14px]">message</p>
+                                </div>
+                                <div className="items-center justify-start flex flex-col gap-4">
+
+                                    <Button
+                                        variant='outline'
+                                        className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer"
+                                        onClick={() => setIsUploadDialogOpen(true)}
+                                    >
+                                        upload image
+                                    </Button>
+
+
+                                    <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={saveFilmStrip}>
+                                        download film
+                                    </Button>
+
+                                    <Button variant='outline' className="text-white bg-[#151515] hover:bg-white w-[110px] xl:w-[150px] h-[45px] flex items-center justify-center text-[12px] rounded-[3px] cursor-pointer" onClick={() => setShowCameraErrorDialogggg(true)}>
+                                        download video
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
-                        <div >
-                            <div>
-                                <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
-                                    {showMessage ? message : ""}
-                                </p>
+                    </div>
+
+                    <div className="w-full  p-2 flex flex-col gap-4  max-w-[215px] mx-auto">
+                        <div className="flex self-start">
+                            <p className="flex justify-start text-start">camera filters</p>
+                        </div>
+
+                        <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                            <video
+                                ref={videoRef1}
+                                autoPlay
+                                playsInline
+                                className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
+                                style={{ filter: filters[6] }}
+                            />
+                            <div className="absolute top-12 right-8 w-full h-full flex items-center justify-center">
+                                <p>kodachrome 64</p>
                             </div>
-                            <div>
-                                <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
-                                    {showDate ? new Date().toLocaleDateString() : ""}
-                                </p>
+                        </div>
+                        <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                            <video
+                                ref={videoRef2}
+                                autoPlay
+                                playsInline
+                                className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
+                                style={{ filter: filters[1] }}
+                            />
+                            <div className="absolute top-12 right-18 w-full h-full flex items-center justify-center">
+                                <p>b&w</p>
                             </div>
-                            <div >
-                                <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
-                                    00_ by shlynav.tiff
-                                </p>
+                        </div>
+                        <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                            <video
+                                ref={videoRef3}
+                                autoPlay
+                                playsInline
+                                className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
+                                style={{ filter: filters[2] }}
+                            />
+                            <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
+                                <p>sepia</p>
+                            </div>
+                        </div>
+                        <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                            <video
+                                ref={videoRef4}
+                                autoPlay
+                                playsInline
+                                className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
+                                style={{ filter: filters[3] }}
+                            />
+                            <div className="absolute top-12 right-17 w-full h-full flex items-center justify-center">
+                                <p>bright</p>
+                            </div>
+                        </div>
+                        <div className="border-2 border-whiterounded-[3px] w-[200px] h-[140px] relative">
+                            <video
+                                ref={videoRef5}
+                                autoPlay
+                                playsInline
+                                className={`w-full h-full object-cover ${isFlipped ? "flipped" : ""}`}
+                                style={{ filter: filters[4] }}
+                            />
+                            <div className="absolute top-12 right-15 w-full h-full flex items-center justify-center">
+                                <p>vintage</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-            </div>
 
+                <div className=" flex flex-col justify-center mt-4 mx-auto" >
+
+                    <Select onValueChange={(value) => setLayout(value)}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select Layout" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="vertical">vertical</SelectItem>
+                            <SelectItem value="horizontal">horizontal</SelectItem>
+                            <SelectItem value="grid-vertical">vertical grid</SelectItem>
+                            <SelectItem value="grid-horizontal">horizontal grid</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <div className="mt-6">
+                        {layout === "vertical" && (
+                            <div className="border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4 justify-center"
+                                style={{
+                                    background: filmColor === "gradient"
+                                        ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
+                                        : customColor,
+                                }}>
+                                <div className="space-y-4">
+                                    {photo.map((src, index) => (
+                                        <div key={index} className="border border-white w-full h-[140px] bg-white relative flex items-center"
+                                            draggable
+                                            onDragStart={(event) => handleDragStart(event, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onTouchStart={() => handleTouchStart(index)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={() => handleTouchEnd(index)}>
+                                            <div className="absolute top-2 left text-white cursor-grab opacity-70 z-10">
+                                                <GripVertical />
+                                            </div>
+                                            <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} fill className="rounded w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div>
+                                    <div>
+                                        <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
+                                            {showMessage ? message : ""}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
+                                            {showDate ? new Date().toLocaleDateString() : ""}
+                                        </p>
+                                    </div>
+                                    <div >
+                                        <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
+                                            00_ by shlynav.tiff
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {layout === "horizontal" && (
+                            <div className="border bg-pink-300 border-white w-[715px] h-[250px] p-3 gap-3 flex flex-row">
+                                {photo.slice(0, 4).map((src, index) => (
+                                    <div key={index} className="border border-white w-[140px] h-full bg-white relative flex items-center"
+                                        draggable
+                                        onDragStart={(event) => handleDragStart(event, index)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(event) => handleDrop(event, index)}
+                                        onTouchStart={() => handleTouchStart(index)}
+                                        onTouchMove={handleTouchMove}
+                                        onTouchEnd={() => handleTouchEnd(index)}>
+                                        <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} fill className="rounded w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                                <div className="flex flex-col justify-center items-center">
+                                    <div>
+                                        <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
+                                            {showMessage ? message : ""}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
+                                            {showDate ? new Date().toLocaleDateString() : ""}
+                                        </p>
+                                    </div>
+                                    <div >
+                                        <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
+                                            00_ by shlynav.tiff
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {layout === "grid-vertical" && (
+                            <div className="border bg-pink-300 border-white w-[515px] h-[830px] p-4 gap-4 flex flex-col">
+                                <div className="flex flex-row gap-4">
+                                    {photo.slice(0, 2).map((src, index) => (
+                                        <div key={index} className="border border-white w-full h-[335px] bg-white relative flex items-center"
+                                            draggable
+                                            onDragStart={(event) => handleDragStart(event, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onTouchStart={() => handleTouchStart(index)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={() => handleTouchEnd(index)}>
+                                            <Image src={src} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-row gap-4">
+                                    {photo.slice(2, 4).map((src, index) => (
+                                        <div key={index} className="border border-white w-full h-[335px] bg-white relative flex items-center"
+                                            draggable
+                                            onDragStart={(event) => handleDragStart(event, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onTouchStart={() => handleTouchStart(index)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={() => handleTouchEnd(index)}>
+                                            <Image src={src} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div>
+                                    <div>
+                                        <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
+                                            {showMessage ? message : ""}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
+                                            {showDate ? new Date().toLocaleDateString() : ""}
+                                        </p>
+                                    </div>
+                                    <div >
+                                        <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
+                                            00_ by shlynav.tiff
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {layout === "grid-horizontal" && (
+                            <div className="border bg-pink-300 border-white w-[895px] h-[460px] p-4 gap-4 flex flex-row">
+                                <div className="flex flex-col gap-4">
+                                    {photo.slice(0, 2).map((src, index) => (
+                                        <div key={index} className="border border-white w-[365px] h-[205px] bg-white relative flex items-center"
+                                            draggable
+                                            onDragStart={(event) => handleDragStart(event, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onTouchStart={() => handleTouchStart(index)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={() => handleTouchEnd(index)}>
+                                            <Image src={src} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-col gap-4">
+                                    {photo.slice(2, 4).map((src, index) => (
+                                        <div key={index} className="border border-white w-[365px] h-[205px] bg-white relative flex items-center"
+                                            draggable
+                                            onDragStart={(event) => handleDragStart(event, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onTouchStart={() => handleTouchStart(index)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={() => handleTouchEnd(index)}>
+                                            <Image src={src} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+
+                                </div>
+                                <div className="flex justify-center flex-col" >
+                                    <div>
+                                        <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
+                                            {showMessage ? message : ""}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
+                                            {showDate ? new Date().toLocaleDateString() : ""}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center justify-center">
+                                        <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
+                                            00_ by shlynav.tiff
+                                        </p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        )}
+                    </div>
+
+                </div>
+
+
+
+            </div >
             <div >
                 <Tangina />
             </div>
-
         </div >
     );
 }

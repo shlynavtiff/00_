@@ -17,8 +17,9 @@ const page = () => {
                     it simple to snap, customize, and download your photos in just a few clicks.
                 </p>
                 <p>
-                    no images are stored or saved when you use <strong>00_.</strong> once you take a photo and download it,
-                    it&apos;s gone from our system – giving you full control over your pictures.
+                    No images are stored or saved when you use <strong>00_.</strong> Once you take a photo and download it,
+                    it’s gone from our system – giving you full control over your pictures.
+                    capture the moment, cherish it, and move on. no traces, no worries – just pure, in-the-moment memories.
                 </p>
                 <p className='text-sm'>a side project of shlynav.tiff</p>
             </div>
