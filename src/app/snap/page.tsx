@@ -102,10 +102,10 @@ export default function Home() {
 
     const highResStickerImages: Record<Exclude<StickerType, "">, Record<LayoutType, string>> = {
         snoopy: {
-            vertical: "/snoopy/renderSnoopyVertical.png",
+            vertical: "/snoopy/snoopyRenderVertical.png",
             horizontal: "/snoopy/renderSnoopyHorizontal.png",
-            "grid-vertical": "/snoopy/renderSnoopyGridVertical.png",
-            "grid-horizontal": "/snoopy/renderSnoopyGridHorizontal.png",
+            "grid-vertical": "/snoopy/snoopyRenderGridVertical.png",
+            "grid-horizontal": "/snoopy/snoopyRenderGridHorizontal.png",
         },
         miffy: {
             vertical: "/miffy/miffyRenderVertical.png",
@@ -478,17 +478,11 @@ export default function Home() {
 
 
 
-        // Inside saveFilmStrip function
         if (selectedSticker && selectedSticker in highResStickerImages) {
             try {
-                // Get the high-resolution sticker path for the current layout
                 const highResPath = highResStickerImages[selectedSticker as Exclude<StickerType, "">][layout];
-
-                // Make sure we have a valid path
                 if (highResPath) {
                     const overlayImg = await loadImage(highResPath);
-
-                    // Apply overlay based on layout
                     ctx.globalAlpha = 1.0;
                     ctx.drawImage(overlayImg, 0, 0, width, height);
                 }
@@ -1009,7 +1003,6 @@ export default function Home() {
                                         ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
                                         : customColor,
                                 }}>
-                                {/* Sticker overlay */}
                                 {selectedSticker && selectedSticker in stickerImages && (
                                     <Image
                                         src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
@@ -1065,7 +1058,6 @@ export default function Home() {
                                         : customColor,
                                 }}
                             >
-                                {/* Sticker overlay */}
                                 {selectedSticker && selectedSticker in stickerImages && (
                                     <Image
                                         src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
@@ -1075,7 +1067,6 @@ export default function Home() {
                                     />
                                 )}
 
-                                {/* Photo frames */}
                                 {photo.slice(0, 4).map((src, index) => (
                                     <div
                                         key={index}
@@ -1126,7 +1117,6 @@ export default function Home() {
                                         ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
                                         : customColor,
                                 }}>
-                                {/* Sticker overlay */}
                                 {selectedSticker && selectedSticker in stickerImages && (
                                     <Image
                                         src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
@@ -1191,7 +1181,6 @@ export default function Home() {
                                         ? `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`
                                         : customColor,
                                 }}>
-                                {/* Sticker overlay */}
                                 {selectedSticker && selectedSticker in stickerImages && (
                                     <Image
                                         src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
