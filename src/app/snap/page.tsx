@@ -23,6 +23,7 @@ import {
 import Image from "next/image";
 import { GripVertical } from "lucide-react";
 
+
 export default function Home() {
     const [mainFeedFilter, setMainFeedFilter] = useState<string>("none");
     const [filters] = useState<string[]>([
@@ -76,7 +77,44 @@ export default function Home() {
     const [isFlipped, setIsFlipped] = useState(false);
     const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
-    const [layout, setLayout] = useState("vertical");
+
+    type StickerType = "snoopy" | "miffy" | "";
+    type LayoutType = "vertical" | "horizontal" | "grid-vertical" | "grid-horizontal";
+
+    const [selectedSticker, setSelectedSticker] = useState<StickerType>("");
+    const [layout, setLayout] = useState<LayoutType>("vertical");
+
+
+    const stickerImages: Record<Exclude<StickerType, "">, Record<LayoutType, string>> = {
+        snoopy: {
+            vertical: "/snoopy/snoopyDisplayVertical.png",
+            horizontal: "/snoopy/snoopyDisplayHorizontal.png",
+            "grid-vertical": "/snoopy/snoopyDisplayGridVertical.png",
+            "grid-horizontal": "/snoopy/snoopyDisplayGridHorizontal.png",
+        },
+        miffy: {
+            vertical: "/miffy/miffyDisplayVertical.png",
+            horizontal: "/miffy/miffyDisplayHorizontal.png",
+            "grid-vertical": "/miffy/miffyDisplayGridVertical.png",
+            "grid-horizontal": "/miffy/miffyDisplayGridHorizontal.png",
+        }
+    };
+
+    const highResStickerImages: Record<Exclude<StickerType, "">, Record<LayoutType, string>> = {
+        snoopy: {
+            vertical: "/snoopy/renderSnoopyVertical.png",
+            horizontal: "/snoopy/renderSnoopyHorizontal.png",
+            "grid-vertical": "/snoopy/renderSnoopyGridVertical.png",
+            "grid-horizontal": "/snoopy/renderSnoopyGridHorizontal.png",
+        },
+        miffy: {
+            vertical: "/miffy/miffyRenderVertical.png",
+            horizontal: "/miffy/miffyRenderHorizontal.png",
+            "grid-vertical": "/miffy/miffyRenderGridVertical.png",
+            "grid-horizontal": "/miffy/miffyRenderGridHorizontal.png",
+        }
+    };
+
 
     useEffect(() => {
         async function getCameras() {
@@ -324,7 +362,7 @@ export default function Home() {
             height: number;
             frameWidth: number;
             frameHeight: number;
-            middleSpacing?: number; // Added middle spacing option
+            middleSpacing?: number;
         };
 
         const layoutConfig: Record<string, LayoutConfig> = {
@@ -409,19 +447,16 @@ export default function Home() {
                 ctx.fillStyle = "white";
                 ctx.fillRect(xPosition, yPosition, frameWidth, frameHeight);
 
-                // Aspect ratio handling
                 const targetAspect = frameWidth / frameHeight;
                 const imgAspect = img.width / img.height;
                 let cropWidth, cropHeight, cropX, cropY;
 
                 if (imgAspect > targetAspect) {
-                    // Landscape image - crop width
                     cropWidth = img.height * targetAspect;
                     cropHeight = img.height;
                     cropX = (img.width - cropWidth) / 2;
                     cropY = 0;
                 } else {
-                    // Portrait image - crop height
                     cropHeight = img.width / targetAspect;
                     cropWidth = img.width;
                     cropX = 0;
@@ -441,6 +476,26 @@ export default function Home() {
             }
         }
 
+
+
+        // Inside saveFilmStrip function
+        if (selectedSticker && selectedSticker in highResStickerImages) {
+            try {
+                // Get the high-resolution sticker path for the current layout
+                const highResPath = highResStickerImages[selectedSticker as Exclude<StickerType, "">][layout];
+
+                // Make sure we have a valid path
+                if (highResPath) {
+                    const overlayImg = await loadImage(highResPath);
+
+                    // Apply overlay based on layout
+                    ctx.globalAlpha = 1.0;
+                    ctx.drawImage(overlayImg, 0, 0, width, height);
+                }
+            } catch (error) {
+                console.error("Error loading overlay image:", error);
+            }
+        }
         const textFillColor: string = textColor === "custom" ? customTextColor : textColor;
 
         if (layout === "horizontal") {
@@ -811,17 +866,14 @@ export default function Home() {
 
                                 <div>
                                     <p className="text-[14px]">stickers</p>
-                                    <Select disabled>
-                                        <SelectTrigger className=" w-[170px]">
-                                            <SelectValue placeholder="snoopy" />
+                                    <Select onValueChange={(value: string) => setSelectedSticker(value === "none" ? "" : value as StickerType)}>
+                                        <SelectTrigger className="w-[170px]">
+                                            <SelectValue placeholder="none" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="mofusand">mofusand</SelectItem>
+                                            <SelectItem value="none">none</SelectItem>
                                             <SelectItem value="snoopy">snoopy</SelectItem>
-                                            <SelectItem value="girly">girly</SelectItem>
-                                            <SelectItem value="shin chan">shin chan</SelectItem>
                                             <SelectItem value="miffy">miffy</SelectItem>
-                                            <SelectItem value="butterfly">butterfly</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -931,11 +983,17 @@ export default function Home() {
 
                 <div className=" flex flex-col justify-center mt-4 mx-auto" >
 
-                    <Select onValueChange={(value) => setLayout(value)}>
-                        <SelectTrigger className="w-[200px]">
+                    <Select
+                        onValueChange={(value) => {
+                            if (["vertical", "horizontal", "grid-vertical", "grid-horizontal"].includes(value)) {
+                                setLayout(value as LayoutType);
+                            }
+                        }}
+                    >
+                        <SelectTrigger className="w-[200px] ">
                             <SelectValue placeholder="Select Layout" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-90">
                             <SelectItem value="vertical">vertical</SelectItem>
                             <SelectItem value="horizontal">horizontal</SelectItem>
                             <SelectItem value="grid-vertical">vertical grid</SelectItem>
@@ -945,13 +1003,23 @@ export default function Home() {
 
                     <div className="mt-6">
                         {layout === "vertical" && (
-                            <div className="border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4 justify-center"
+                            <div className="border-2 border-white w-[250px] h-[715px] p-4 flex flex-col gap-4 justify-center relative"
                                 style={{
                                     background: filmColor === "gradient"
                                         ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
                                         : customColor,
                                 }}>
-                                <div className="space-y-4">
+                                {/* Sticker overlay */}
+                                {selectedSticker && selectedSticker in stickerImages && (
+                                    <Image
+                                        src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
+                                        alt="Sticker Overlay"
+                                        fill
+                                        className="absolute inset-0 object-cover z-80 pointer-events-none"
+                                    />
+                                )}
+
+                                <div className="space-y-4 z-20">
                                     {photo.map((src, index) => (
                                         <div key={index} className="border border-white w-full h-[140px] bg-white relative flex items-center"
                                             draggable
@@ -968,7 +1036,7 @@ export default function Home() {
                                         </div>
                                     ))}
                                 </div>
-                                <div>
+                                <div className="z-20">
                                     <div>
                                         <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
                                             {showMessage ? message : ""}
@@ -989,32 +1057,60 @@ export default function Home() {
                         )}
 
                         {layout === "horizontal" && (
-                            <div className="border bg-pink-300 border-white w-[715px] h-[250px] p-3 gap-3 flex flex-row">
+                            <div
+                                className="border border-white w-full h-64 p-3 gap-3 flex flex-row relative"
+                                style={{
+                                    background: filmColor === "gradient"
+                                        ? `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`
+                                        : customColor,
+                                }}
+                            >
+                                {/* Sticker overlay */}
+                                {selectedSticker && selectedSticker in stickerImages && (
+                                    <Image
+                                        src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
+                                        alt="Sticker Overlay"
+                                        fill
+                                        className="absolute inset-0 object-cover z-80 pointer-events-none"
+                                    />
+                                )}
+
+                                {/* Photo frames */}
                                 {photo.slice(0, 4).map((src, index) => (
-                                    <div key={index} className="border border-white w-[140px] h-full bg-white relative flex items-center"
+                                    <div
+                                        key={index}
+                                        className="border border-white w-36 h-full bg-white relative flex items-center overflow-hidden"
                                         draggable
                                         onDragStart={(event) => handleDragStart(event, index)}
                                         onDragOver={handleDragOver}
                                         onDrop={(event) => handleDrop(event, index)}
                                         onTouchStart={() => handleTouchStart(index)}
                                         onTouchMove={handleTouchMove}
-                                        onTouchEnd={() => handleTouchEnd(index)}>
-                                        <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} fill className="rounded w-full h-full object-cover" />
+                                        onTouchEnd={() => handleTouchEnd(index)}
+                                    >
+                                        <Image
+                                            src={src || "/placeholder.jpg"}
+                                            alt={`Photo ${index + 1}`}
+                                            fill
+                                            className="rounded w-full h-full object-cover"
+                                        />
                                     </div>
                                 ))}
-                                <div className="flex flex-col justify-center items-center">
+
+
+                                <div className="flex flex-col justify-center items-center z-20">
                                     <div>
-                                        <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
+                                        <p className="text-xs font-bold" style={{ color: customTextColor }}>
                                             {showMessage ? message : ""}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-[12px] font-bold " style={{ color: customTextColor }}>
+                                        <p className="text-xs font-bold" style={{ color: customTextColor }}>
                                             {showDate ? new Date().toLocaleDateString() : ""}
                                         </p>
                                     </div>
-                                    <div >
-                                        <p className="text-[8px] font-bold" style={{ color: customTextColor }}>
+                                    <div>
+                                        <p className="text-xs font-bold" style={{ color: customTextColor }}>
                                             00_ by shlynav.tiff
                                         </p>
                                     </div>
@@ -1022,9 +1118,25 @@ export default function Home() {
                             </div>
                         )}
 
+
                         {layout === "grid-vertical" && (
-                            <div className="border bg-pink-300 border-white w-[515px] h-[830px] p-4 gap-4 flex flex-col">
-                                <div className="flex flex-row gap-4">
+                            <div className="border border-white w-[515px] h-[830px] p-4 gap-4 flex flex-col relative"
+                                style={{
+                                    background: filmColor === "gradient"
+                                        ? `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`
+                                        : customColor,
+                                }}>
+                                {/* Sticker overlay */}
+                                {selectedSticker && selectedSticker in stickerImages && (
+                                    <Image
+                                        src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
+                                        alt="Sticker Overlay"
+                                        fill
+                                        className="absolute inset-0 object-cover z-80 pointer-events-none"
+                                    />
+                                )}
+
+                                <div className="flex flex-row gap-4 z-20">
                                     {photo.slice(0, 2).map((src, index) => (
                                         <div key={index} className="border border-white w-full h-[335px] bg-white relative flex items-center"
                                             draggable
@@ -1034,11 +1146,11 @@ export default function Home() {
                                             onTouchStart={() => handleTouchStart(index)}
                                             onTouchMove={handleTouchMove}
                                             onTouchEnd={() => handleTouchEnd(index)}>
-                                            <Image src={src} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
+                                            <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex flex-row gap-4">
+                                <div className="flex flex-row gap-4 z-20">
                                     {photo.slice(2, 4).map((src, index) => (
                                         <div key={index} className="border border-white w-full h-[335px] bg-white relative flex items-center"
                                             draggable
@@ -1048,11 +1160,11 @@ export default function Home() {
                                             onTouchStart={() => handleTouchStart(index)}
                                             onTouchMove={handleTouchMove}
                                             onTouchEnd={() => handleTouchEnd(index)}>
-                                            <Image src={src} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
+                                            <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} width={250} height={335} className="rounded w-full h-full object-cover" />
                                         </div>
                                     ))}
                                 </div>
-                                <div>
+                                <div className="z-20">
                                     <div>
                                         <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
                                             {showMessage ? message : ""}
@@ -1073,8 +1185,23 @@ export default function Home() {
                         )}
 
                         {layout === "grid-horizontal" && (
-                            <div className="border bg-pink-300 border-white w-[895px] h-[460px] p-4 gap-4 flex flex-row">
-                                <div className="flex flex-col gap-4">
+                            <div className="border border-white w-[895px] h-[460px] p-4 gap-4 flex flex-row relative"
+                                style={{
+                                    background: filmColor === "gradient"
+                                        ? `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`
+                                        : customColor,
+                                }}>
+                                {/* Sticker overlay */}
+                                {selectedSticker && selectedSticker in stickerImages && (
+                                    <Image
+                                        src={stickerImages[selectedSticker as Exclude<StickerType, "">][layout]}
+                                        alt="Sticker Overlay"
+                                        fill
+                                        className="absolute inset-0 object-cover z-80 pointer-events-none"
+                                    />
+                                )}
+
+                                <div className="flex flex-col gap-4 z-20">
                                     {photo.slice(0, 2).map((src, index) => (
                                         <div key={index} className="border border-white w-[365px] h-[205px] bg-white relative flex items-center"
                                             draggable
@@ -1084,11 +1211,11 @@ export default function Home() {
                                             onTouchStart={() => handleTouchStart(index)}
                                             onTouchMove={handleTouchMove}
                                             onTouchEnd={() => handleTouchEnd(index)}>
-                                            <Image src={src} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
+                                            <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-4 z-20">
                                     {photo.slice(2, 4).map((src, index) => (
                                         <div key={index} className="border border-white w-[365px] h-[205px] bg-white relative flex items-center"
                                             draggable
@@ -1098,12 +1225,11 @@ export default function Home() {
                                             onTouchStart={() => handleTouchStart(index)}
                                             onTouchMove={handleTouchMove}
                                             onTouchEnd={() => handleTouchEnd(index)}>
-                                            <Image src={src} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
+                                            <Image src={src || "/placeholder.jpg"} alt={`Photo ${index + 1}`} width={365} height={205} className="rounded w-full h-full object-cover" />
                                         </div>
                                     ))}
-
                                 </div>
-                                <div className="flex justify-center flex-col" >
+                                <div className="flex justify-center flex-col z-20" >
                                     <div>
                                         <p className="text-[12px] font-bold" style={{ color: customTextColor }}>
                                             {showMessage ? message : ""}
@@ -1120,7 +1246,6 @@ export default function Home() {
                                         </p>
                                     </div>
                                 </div>
-
                             </div>
                         )}
                     </div>
