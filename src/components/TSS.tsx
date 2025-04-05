@@ -11,7 +11,7 @@ const TSS = () => {
             </Link>
 
 
-            <div className="flex flex-row gap-4 text-[14px]">
+            <div className="flex flex-row gap-4 sm:text-[16px]">
                 <Link href={"/"}>
                     <div >
                         home

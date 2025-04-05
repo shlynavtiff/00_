@@ -12,7 +12,7 @@ const page = () => {
       <div className=' '>
         <TSS />
       </div>
-      <div className='items-center justify-center w-full h-full flex flex-col gap-4'>
+      <div className='items-center justify-center w-full h-full flex flex-col gap-4 sm:text-xl '>
         online photobooth by shlynav.tiff
         <Link href={"/snap"} ><Button className='border border-white cursor-pointer'>snap</Button></Link>
       </div>

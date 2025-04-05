@@ -78,7 +78,7 @@ export default function Home() {
     const [touchStartIndex, setTouchStartIndex] = useState<number | null>(null);
 
 
-    type StickerType = "snoopy" | "miffy" | "";
+    type StickerType = "snoopy" | "miffy" | "melody" | "";
     type LayoutType = "vertical" | "horizontal" | "grid-vertical" | "grid-horizontal";
 
     const [selectedSticker, setSelectedSticker] = useState<StickerType>("");
@@ -97,6 +97,13 @@ export default function Home() {
             horizontal: "/miffy/miffyDisplayHorizontal.png",
             "grid-vertical": "/miffy/miffyDisplayGridVertical.png",
             "grid-horizontal": "/miffy/miffyDisplayGridHorizontal.png",
+        },
+        melody: {
+            vertical: "/melody/melodyDisplayVertical.png",
+            horizontal: "/melody/melodyDisplayHorizontal.png",
+            "grid-vertical": "/melody/melodyDisplayGridVertical.png",
+            "grid-horizontal": "/melody/melodyDisplayGridHorizontal.png",
+
         }
     };
 
@@ -112,7 +119,14 @@ export default function Home() {
             horizontal: "/miffy/miffyRenderHorizontal.png",
             "grid-vertical": "/miffy/miffyRenderGridVertical.png",
             "grid-horizontal": "/miffy/miffyRenderGridHorizontal.png",
+        },
+        melody: {
+            vertical: "/melody/melodyRenderVertical.png",
+            horizontal: "/melody/melodyRenderHorizontal.png",
+            "grid-vertical": "/melody/melodyRenderGridVertical.png",
+            "grid-horizontal": "/melody/melodyRenderGridHorizontal.png",
         }
+
     };
 
 
@@ -868,6 +882,7 @@ export default function Home() {
                                             <SelectItem value="none">none</SelectItem>
                                             <SelectItem value="snoopy">snoopy</SelectItem>
                                             <SelectItem value="miffy">miffy</SelectItem>
+                                            <SelectItem value="melody">my melody</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
